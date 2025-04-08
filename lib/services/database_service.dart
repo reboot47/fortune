@@ -818,6 +818,66 @@ class DatabaseService {
   // テーブルの存在確認を行うメソッド（接続エラーと切り離して処理）
   Future<void> _checkTableExists() async {
     await _ensureUsersTableExists();
+    await _ensureConsultationCardTableExists();
+    await _ensureFortuneTablesExist();
+  }
+  
+  // 占い関連テーブルの存在確認と作成
+  Future<void> _ensureFortuneTablesExist() async {
+    try {
+      await _ensureConnected();
+      
+      // 占いテンプレートテーブルの確認
+      final fortuneTemplateTableExists = await _connection.query(
+        "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'fortune_templates')"
+      );
+      
+      if (fortuneTemplateTableExists.first[0] == false) {
+        print('Creating fortune_templates table...');
+        await _connection.execute('''
+          CREATE TABLE fortune_templates (
+            id SERIAL PRIMARY KEY,
+            fortune_teller_id INTEGER NOT NULL,
+            title VARCHAR(100) NOT NULL,
+            description TEXT,
+            content TEXT NOT NULL,
+            fortune_type VARCHAR(50) NOT NULL,
+            created_at TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP,
+            FOREIGN KEY (fortune_teller_id) REFERENCES users(id) ON DELETE CASCADE
+          )
+        ''');
+        print('Created fortune_templates table successfully');
+      }
+      
+      // 占い結果テーブルの確認
+      final fortuneResultsTableExists = await _connection.query(
+        "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'fortune_results')"
+      );
+      
+      if (fortuneResultsTableExists.first[0] == false) {
+        print('Creating fortune_results table...');
+        await _connection.execute('''
+          CREATE TABLE fortune_results (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            fortune_teller_id INTEGER,
+            template_id INTEGER,
+            fortune_type VARCHAR(50) NOT NULL,
+            question TEXT,
+            result_content TEXT NOT NULL,
+            created_at TIMESTAMP NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (fortune_teller_id) REFERENCES users(id) ON DELETE SET NULL,
+            FOREIGN KEY (template_id) REFERENCES fortune_templates(id) ON DELETE SET NULL
+          )
+        ''');
+        print('Created fortune_results table successfully');
+      }
+    } catch (e) {
+      print('Error ensuring fortune tables exist: $e');
+      rethrow;
+    }
   }
   
   Future<void> _ensureConnected() async {
@@ -844,6 +904,191 @@ class DatabaseService {
         print('Failed to reconnect: $connectError');
         // 再接続失敗時はエラーログのみ記録
       }
+    }
+  }
+  
+  // 占いテンプレートを保存するメソッド
+  Future<Map<String, dynamic>> saveFortuneTemplate(Map<String, dynamic> templateData, int fortuneTellerId) async {
+    try {
+      await _ensureConnected();
+      await _ensureFortuneTablesExist();
+      
+      final timestamp = DateTime.now().toUtc().toIso8601String();
+      
+      // テンプレートIDが提供されている場合は更新、そうでなければ新規作成
+      if (templateData.containsKey('id') && templateData['id'] != null) {
+        final templateId = templateData['id'];
+        
+        // テンプレートの所有者を確認
+        final ownerCheck = await _connection.query(
+          'SELECT fortune_teller_id FROM fortune_templates WHERE id = @id',
+          substitutionValues: {'id': templateId},
+        );
+        
+        if (ownerCheck.isEmpty || ownerCheck.first[0] != fortuneTellerId) {
+          return {'success': false, 'message': 'テンプレートの更新権限がありません'};
+        }
+        
+        // テンプレートを更新
+        await _connection.execute('''
+          UPDATE fortune_templates SET
+            title = @title,
+            description = @description,
+            content = @content,
+            fortune_type = @fortuneType,
+            updated_at = @updatedAt
+          WHERE id = @id
+        ''', substitutionValues: {
+          'id': templateId,
+          'title': templateData['title'],
+          'description': templateData['description'],
+          'content': templateData['content'],
+          'fortuneType': templateData['fortune_type'],
+          'updatedAt': timestamp,
+        });
+        
+        return {
+          'success': true,
+          'message': '占いテンプレートを更新しました',
+          'id': templateId
+        };
+      } else {
+        // 新規テンプレート作成
+        final result = await _connection.query('''
+          INSERT INTO fortune_templates (
+            fortune_teller_id, title, description, content, fortune_type, created_at, updated_at
+          ) VALUES (
+            @fortuneTellerId, @title, @description, @content, @fortuneType, @createdAt, @updatedAt
+          ) RETURNING id
+        ''', substitutionValues: {
+          'fortuneTellerId': fortuneTellerId,
+          'title': templateData['title'],
+          'description': templateData['description'],
+          'content': templateData['content'],
+          'fortuneType': templateData['fortune_type'],
+          'createdAt': timestamp,
+          'updatedAt': timestamp,
+        });
+        
+        return {
+          'success': true,
+          'message': '占いテンプレートを作成しました',
+          'id': result.first[0]
+        };
+      }
+    } catch (e) {
+      print('Error saving fortune template: $e');
+      return {'success': false, 'message': 'テンプレート保存中にエラーが発生しました: $e'};
+    }
+  }
+  
+  // 占い師のテンプレート一覧を取得するメソッド
+  Future<Map<String, dynamic>> getFortuneTemplates(int fortuneTellerId) async {
+    try {
+      await _ensureConnected();
+      
+      final result = await _connection.query('''
+        SELECT id, title, description, fortune_type, created_at, updated_at
+        FROM fortune_templates
+        WHERE fortune_teller_id = @fortuneTellerId
+        ORDER BY updated_at DESC
+      ''', substitutionValues: {
+        'fortuneTellerId': fortuneTellerId,
+      });
+      
+      List<Map<String, dynamic>> templates = [];
+      for (final row in result) {
+        templates.add({
+          'id': row[0],
+          'title': row[1],
+          'description': row[2],
+          'fortune_type': row[3],
+          'created_at': row[4],
+          'updated_at': row[5],
+        });
+      }
+      
+      return {
+        'success': true,
+        'templates': templates,
+      };
+    } catch (e) {
+      print('Error fetching fortune templates: $e');
+      return {'success': false, 'message': 'テンプレート取得中にエラーが発生しました: $e'};
+    }
+  }
+  
+  // 占い結果を保存するメソッド
+  Future<Map<String, dynamic>> saveFortuneResult(Map<String, dynamic> resultData) async {
+    try {
+      await _ensureConnected();
+      await _ensureFortuneTablesExist();
+      
+      final timestamp = DateTime.now().toUtc().toIso8601String();
+      
+      // 新しい占い結果を保存
+      final result = await _connection.query('''
+        INSERT INTO fortune_results (
+          user_id, fortune_teller_id, template_id, fortune_type, question, result_content, created_at
+        ) VALUES (
+          @userId, @fortuneTellerId, @templateId, @fortuneType, @question, @resultContent, @createdAt
+        ) RETURNING id
+      ''', substitutionValues: {
+        'userId': resultData['user_id'],
+        'fortuneTellerId': resultData['fortune_teller_id'],
+        'templateId': resultData['template_id'],
+        'fortuneType': resultData['fortune_type'],
+        'question': resultData['question'],
+        'resultContent': resultData['result_content'],
+        'createdAt': timestamp,
+      });
+      
+      return {
+        'success': true,
+        'message': '占い結果を保存しました',
+        'id': result.first[0]
+      };
+    } catch (e) {
+      print('Error saving fortune result: $e');
+      return {'success': false, 'message': '占い結果の保存中にエラーが発生しました: $e'};
+    }
+  }
+  
+  // ユーザーの占い履歴を取得するメソッド
+  Future<Map<String, dynamic>> getUserFortuneHistory(int userId) async {
+    try {
+      await _ensureConnected();
+      
+      final result = await _connection.query('''
+        SELECT fr.id, fr.fortune_type, fr.question, fr.result_content, fr.created_at,
+               u.display_name as fortune_teller_name
+        FROM fortune_results fr
+        LEFT JOIN users u ON fr.fortune_teller_id = u.id
+        WHERE fr.user_id = @userId
+        ORDER BY fr.created_at DESC
+      ''', substitutionValues: {
+        'userId': userId,
+      });
+      
+      List<Map<String, dynamic>> history = [];
+      for (final row in result) {
+        history.add({
+          'id': row[0],
+          'fortune_type': row[1],
+          'question': row[2],
+          'result_content': row[3],
+          'created_at': row[4],
+          'fortune_teller_name': row[5],
+        });
+      }
+      
+      return {
+        'success': true,
+        'history': history,
+      };
+    } catch (e) {
+      print('Error fetching user fortune history: $e');
+      return {'success': false, 'message': '占い履歴の取得中にエラーが発生しました: $e'};
     }
   }
 }
