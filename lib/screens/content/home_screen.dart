@@ -7,6 +7,7 @@ import '../../widgets/circular_menu.dart';
 import '../../widgets/common_header.dart';
 import 'my_page_screen.dart';
 import '../settings/settings_screen.dart';
+import '../fortune/fortune_selection_screen.dart';
 
 // 画面インデックス管理用の列挙型
 enum AppScreen { home, history, menu, ranking, profile }
@@ -300,11 +301,20 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
               children: [
-                _buildServiceCard(
-                  icon: Icons.star,
-                  title: '占いサービス',
-                  description: '運勢をチェック',
-                  color: const Color(0xFF1a237e),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => FortuneSelectionScreen(userData: widget.userData),
+                      ),
+                    );
+                  },
+                  child: _buildServiceCard(
+                    icon: Icons.star,
+                    title: '占いサービス',
+                    description: '運勢をチェック',
+                    color: const Color(0xFF1a237e),
+                  ),
                 ),
                 _buildServiceCard(
                   icon: Icons.chat_bubble,
