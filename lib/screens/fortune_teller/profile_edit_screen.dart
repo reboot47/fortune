@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'dart:io';
 import '../../widgets/fortune_teller_base_screen.dart';
 import '../../widgets/fortune_teller_tab_bar.dart';
+import '../../services/fortune_teller_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({Key? key}) : super(key: key);
@@ -17,58 +24,68 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   int _currentIndex = 4; // マイページタブが選択されている状態
   bool _isWaiting = true; // 初期状態は待機中
   
+  // サービスインスタンス
+  final FortuneTellerService _fortuneTellerService = FortuneTellerService();
+  final ImagePicker _picker = ImagePicker();
+  bool _isLoading = true;
+  bool _isSaving = false;
+  
+  // プロフィール画像
+  File? _profileImage;
+  String? _networkImageUrl;
+  
   // 性別選択
   String _selectedGender = '女性';
   
   // 得意ジャンルのチェックボックス状態
   final Map<String, bool> _genres = {
-    '相性': true,
-    '結婚': true,
+    '相性': false,
+    '結婚': false,
     '離婚': false,
     '夫婦仲': false,
-    '復縁': true,
-    '不倫': true,
+    '復縁': false,
+    '不倫': false,
     '縁結び': false,
     '縁切り': false,
-    '遠距離恋愛': true,
+    '遠距離恋愛': false,
     '同性愛': false,
     '三角関係': false,
     '金運': false,
     '仕事': false,
-    '起業': true,
-    '転職': true,
+    '起業': false,
+    '転職': false,
     '対人関係': false,
     '自分の気持ち': false,
-    '相手の気持ち': true,
+    '相手の気持ち': false,
     '家庭問題': false,
-    '運勢': true,
+    '運勢': false,
     '開運方法': false,
   };
   
   // 得意占術のチェックボックス状態
   final Map<String, bool> _fortuneTellingTypes = {
     '透視': false,
-    '霊感': true,
-    '送念': true,
+    '霊感': false,
+    '送念': false,
     '祈願': false,
     '祈祷': false,
-    '波動修正': true,
+    '波動修正': false,
     '遠隔ヒーリング': false,
     'オーラ': false,
     'ルーン': false,
-    'タロット': true,
+    'タロット': false,
     'オラクルカード': false,
     'ルノルマンカード': false,
     'パワーストーン': false,
     '数秘術': false,
-    '東洋占星術': true,
+    '東洋占星術': false,
     '西洋占星術': false,
     '夢占い': false,
     '血液型': false,
     'レイキ': false,
     'ダウジング': false,
     'スピリチュアル': false,
-    'チャネリング': true,
+    'チャネリング': false,
     'チャクラ': false,
     'カウンセリング': false,
     'セラピー': false,
@@ -89,7 +106,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     '簡潔': false,
     '素早い': false,
     'ゆっくり': false,
-    'じっくり': true,
+    'じっくり': false,
     '丁寧': false,
     '優しい': false,
     '暖かい': false,
@@ -97,46 +114,121 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     'ズバッと': false,
     '論理的': false,
     'ユーモア': false,
-    'フレンドリー': true,
-    'ポジティブ': true,
+    'フレンドリー': false,
+    'ポジティブ': false,
     '頼りになる': false,
     '聞き上手': false,
     '話し上手': false,
   };
   
   // 自己紹介文
-  final TextEditingController _introductionController = TextEditingController(
-    text: '''✨未来を変えるお手伝いをします✨
-
-初めまして、Enaです😊
-
-私の鑑定では、とことん深掘りをしてネガティブな気持ちをポジティブになって返してもらいたいという気持ちから、上げ下げせず、本来の幸せへお導きできたらという気持ちであなた様のお悩みに寄り添います。
-「この人に見てもらってよかった」と思ってもらえるよう、しっかり向き合います🌸
-しっかり向き合いますが、無駄は作らず簡潔を目に しています。
-
-🔮 鑑定スタイル 🔮
-⭐ 基本的に聞かれた事のみお伝えします
-⭐ ただの未来予測ではなく、あなた様が幸せを掴むためのアドバイスは現実的にお伝えします。
-⭐ あなた様と繋がりやすい方法で鑑定していくので占術はそれぞれですが、主に直感性を持っていただくためにタロットを使い、あなた様の今の状況を深く読み解きます。
-⭐ 一人で悩まず、どんな小さなことでもご相談くださいね😊'''
-  );
+  final TextEditingController _introductionController = TextEditingController();
   
   // サンプルボイス用テキスト
-  final TextEditingController _sampleVoiceController = TextEditingController(
-    text: '''希望の方のみお声がけください
-ご説明いたします🔥
-無料ではないので必要であれば言ってください
-
-あなたが幸せに進むためのお手伝いをさせてください✨
-お話しできるのを楽しみにしています😊'''
-  );
+  final TextEditingController _sampleVoiceController = TextEditingController();
   
   // 名前
-  final TextEditingController _nameController = TextEditingController(text: '霊感お姉さん');
+  final TextEditingController _nameController = TextEditingController();
   
   @override
   void initState() {
     super.initState();
+    _loadProfileData();
+  }
+  
+  // プロフィールデータを読み込む
+  Future<void> _loadProfileData() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // プロフィール画像のパスを取得
+      final imagePath = await _fortuneTellerService.getProfileImagePath();
+      if (imagePath != null && imagePath.isNotEmpty) {
+        if (imagePath.startsWith('http')) {
+          // ネットワーク画像の場合
+          setState(() {
+            _networkImageUrl = imagePath;
+          });
+        } else {
+          // ローカル画像の場合
+          final file = File(imagePath);
+          if (await file.exists()) {
+            setState(() {
+              _profileImage = file;
+            });
+          }
+        }
+      }
+      
+      // プロフィールデータを取得
+      final result = await _fortuneTellerService.getFortuneTellerProfile();
+      if (result['success'] == true && result['profile'] != null) {
+        final profile = result['profile'] as Map<String, dynamic>;
+        
+        // 名前を設定
+        if (profile['name'] != null) {
+          _nameController.text = profile['name'];
+        }
+        
+        // 性別を設定
+        if (profile['gender'] != null) {
+          setState(() {
+            _selectedGender = profile['gender'];
+          });
+        }
+        
+        // 自己紹介文を設定
+        if (profile['introduction'] != null) {
+          _introductionController.text = profile['introduction'];
+        }
+        
+        // サンプルボイステキストを設定
+        if (profile['sample_voice_text'] != null) {
+          _sampleVoiceController.text = profile['sample_voice_text'];
+        }
+        
+        // 得意ジャンルを設定
+        if (profile['genres'] != null && profile['genres'] is List) {
+          final genres = profile['genres'] as List;
+          for (var genre in genres) {
+            if (_genres.containsKey(genre)) {
+              _genres[genre] = true;
+            }
+          }
+        }
+        
+        // 得意占術を設定
+        if (profile['fortune_telling_types'] != null && profile['fortune_telling_types'] is List) {
+          final types = profile['fortune_telling_types'] as List;
+          for (var type in types) {
+            if (_fortuneTellingTypes.containsKey(type)) {
+              _fortuneTellingTypes[type] = true;
+            }
+          }
+        }
+        
+        // 相談スタイルを設定
+        if (profile['consultation_styles'] != null && profile['consultation_styles'] is List) {
+          final styles = profile['consultation_styles'] as List;
+          for (var style in styles) {
+            if (_consultationStyles.containsKey(style)) {
+              _consultationStyles[style] = true;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('プロフィール読み込みエラー: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('プロフィールの読み込みに失敗しました: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -147,14 +239,108 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     super.dispose();
   }
   
-  // 未実装機能のメッセージを表示
-  void _showNotImplementedMessage(String feature) {
+  // メッセージを表示
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$featureは開発中です'),
+        content: Text(message),
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+  
+  // プロフィール画像を選択
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        // アプリディレクトリに画像を保存
+        final appDir = await getApplicationDocumentsDirectory();
+        final fileName = path.basename(pickedFile.path);
+        final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
+        
+        // SharedPreferencesに画像パスを保存
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profileImagePath', savedImage.path);
+        
+        setState(() {
+          _profileImage = savedImage;
+          _networkImageUrl = null; // ローカル画像を使用するためネットワーク画像をクリア
+        });
+      }
+    } catch (e) {
+      print('画像選択エラー: $e');
+      _showMessage('画像の選択に失敗しました: $e');
+    }
+  }
+  
+  // プロフィールを保存
+  Future<void> _saveProfile() async {
+    // 入力チェック
+    if (_nameController.text.trim().isEmpty) {
+      _showMessage('名前を入力してください');
+      return;
+    }
+    
+    // 得意ジャンルの選択数をチェック
+    final selectedGenres = _genres.entries.where((e) => e.value).length;
+    if (selectedGenres < 3 || selectedGenres > 9) {
+      _showMessage('得意ジャンルは3〜9つ選択してください');
+      return;
+    }
+    
+    // 得意占術の選択数をチェック
+    final selectedTypes = _fortuneTellingTypes.entries.where((e) => e.value).length;
+    if (selectedTypes < 1 || selectedTypes > 6) {
+      _showMessage('得意占術は1〜6つ選択してください');
+      return;
+    }
+    
+    // 相談スタイルの選択数をチェック
+    final selectedStyles = _consultationStyles.entries.where((e) => e.value).length;
+    if (selectedStyles != 3) {
+      _showMessage('相談スタイルは3つ選択してください');
+      return;
+    }
+    
+    setState(() {
+      _isSaving = true;
+    });
+    
+    try {
+      // プロフィールデータを作成
+      final profileData = <String, dynamic>{
+        'name': _nameController.text.trim(),
+        'gender': _selectedGender,
+        'introduction': _introductionController.text,
+        'sample_voice_text': _sampleVoiceController.text,
+        'genres': _genres.entries.where((e) => e.value).map((e) => e.key).toList(),
+        'fortune_telling_types': _fortuneTellingTypes.entries.where((e) => e.value).map((e) => e.key).toList(),
+        'consultation_styles': _consultationStyles.entries.where((e) => e.value).map((e) => e.key).toList(),
+      };
+      
+      // プロフィール画像のパスを取得してデータに追加
+      final imagePath = await _fortuneTellerService.getProfileImagePath();
+      if (imagePath != null && imagePath.isNotEmpty) {
+        profileData['profile_image'] = imagePath;
+      }
+      
+      // プロフィールを保存
+      final result = await _fortuneTellerService.saveFortuneTellerProfile(profileData);
+      
+      if (result['success'] == true) {
+        _showMessage('プロフィールを保存しました');
+      } else {
+        _showMessage('保存に失敗しました: ${result['message']}');
+      }
+    } catch (e) {
+      print('プロフィール保存エラー: $e');
+      _showMessage('プロフィールの保存に失敗しました: $e');
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
   }
   
   @override
@@ -188,7 +374,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF3bcfd4)))
+          : Column(
         children: [
           // 共通タブバー
           FortuneTellerTabBar(
@@ -253,39 +441,57 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                       ),
                                     ),
                                     // プロフィール画像
-                                    const CircleAvatar(
+                                    CircleAvatar(
                                       radius: 50,
-                                      backgroundImage: NetworkImage(
-                                        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1288&auto=format&fit=crop',
-                                      ),
+                                      backgroundImage: _profileImage != null
+                                          ? FileImage(_profileImage!)
+                                          : (_networkImageUrl != null && _networkImageUrl!.isNotEmpty
+                                              ? NetworkImage(_networkImageUrl!)
+                                              : null) as ImageProvider?,
+                                      backgroundColor: Colors.grey[200],
+                                      child: (_profileImage == null && (_networkImageUrl == null || _networkImageUrl!.isEmpty))
+                                          ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                                          : null,
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
                                 // 写真選択ボタン
-                                Container(
-                                  width: 180,
-                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.photo_camera, color: Colors.grey[700], size: 20),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '写真選択',
-                                        style: TextStyle(
-                                          color: Colors.grey[700],
-                                          fontSize: 15,
+                                InkWell(
+                                  onTap: _pickImage,
+                                  child: Container(
+                                    width: 180,
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.photo_camera, color: Colors.grey[700], size: 20),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '写真選択',
+                                          style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontSize: 15,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-
+                                const SizedBox(height: 8),
+                                // プロフィール画像のヘルプリンク
+                                const Text(
+                                  '【運営ブログ】→プロフィール画像を用意しよう',
+                                  style: TextStyle(
+                                    color: Color(0xFF3bcfd4),
+                                    fontSize: 14,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -603,7 +809,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                         icon: const Icon(Icons.mic),
                                         label: const Text('録音する'),
                                         onPressed: () {
-                                          _showNotImplementedMessage('ボイス録音機能');
+                                          _showMessage('ボイス録音機能は開発中です');
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(0xFF3bcfd4),
@@ -625,7 +831,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () {
-                                    _showNotImplementedMessage('プレビュー機能');
+                                    _showMessage('プレビュー機能は開発中です');
                                   },
                                   style: OutlinedButton.styleFrom(
                                     side: const BorderSide(color: Color(0xFF3bcfd4)),
@@ -646,9 +852,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: ElevatedButton(
-                                  onPressed: () {
-                                    _showNotImplementedMessage('プロフィール保存機能');
-                                  },
+                                  onPressed: _saveProfile,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF3bcfd4),
                                     padding: const EdgeInsets.symmetric(vertical: 12),
