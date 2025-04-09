@@ -1,6 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../widgets/fortune_teller_base_screen.dart';
 import '../../widgets/fortune_teller_tab_bar.dart';
+import '../../services/database_service.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({Key? key}) : super(key: key);
@@ -105,38 +112,38 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   };
   
   // 自己紹介文
-  final TextEditingController _introductionController = TextEditingController(
-    text: '''✨未来を変えるお手伝いをします✨
-
-初めまして、Enaです😊
-
-私の鑑定では、とことん深掘りをしてネガティブな気持ちをポジティブになって返してもらいたいという気持ちから、上げ下げせず、本来の幸せへお導きできたらという気持ちであなた様のお悩みに寄り添います。
-「この人に見てもらってよかった」と思ってもらえるよう、しっかり向き合います🌸
-しっかり向き合いますが、無駄は作らず簡潔を目に しています。
-
-🔮 鑑定スタイル 🔮
-⭐ 基本的に聞かれた事のみお伝えします
-⭐ ただの未来予測ではなく、あなた様が幸せを掴むためのアドバイスは現実的にお伝えします。
-⭐ あなた様と繋がりやすい方法で鑑定していくので占術はそれぞれですが、主に直感性を持っていただくためにタロットを使い、あなた様の今の状況を深く読み解きます。
-⭐ 一人で悩まず、どんな小さなことでもご相談くださいね😊'''
-  );
+  final TextEditingController _introductionController = TextEditingController();
   
   // サンプルボイス用テキスト
-  final TextEditingController _sampleVoiceController = TextEditingController(
-    text: '''希望の方のみお声がけください
-ご説明いたします🔥
-無料ではないので必要であれば言ってください
-
-あなたが幸せに進むためのお手伝いをさせてください✨
-お話しできるのを楽しみにしています😊'''
-  );
+  final TextEditingController _sampleVoiceController = TextEditingController();
   
   // 名前
-  final TextEditingController _nameController = TextEditingController(text: '霊感お姉さん');
+  final TextEditingController _nameController = TextEditingController();
+  
+  // データベースサービス
+  final DatabaseService _databaseService = DatabaseService();
+  
+  // ユーザーID
+  int? _userId;
+  
+  // プロフィール画像
+  File? _profileImage;
+  final ImagePicker _imagePicker = ImagePicker();
+  
+  // 音声録音関連
+  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+  bool _isRecording = false;
+  String? _recordedVoicePath;
+  bool _isRecorderInitialized = false;
+  
+  // ローディング状態
+  bool _isLoading = false;
   
   @override
   void initState() {
     super.initState();
+    _initRecorder();
+    _loadUserProfile();
   }
 
   @override
@@ -144,14 +151,256 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _introductionController.dispose();
     _sampleVoiceController.dispose();
     _nameController.dispose();
+    _recorder.closeRecorder();
     super.dispose();
   }
   
-  // 未実装機能のメッセージを表示
-  void _showNotImplementedMessage(String feature) {
+  // レコーダーの初期化
+  Future<void> _initRecorder() async {
+    final status = await Permission.microphone.request();
+    if (status != PermissionStatus.granted) {
+      throw RecordingPermissionException('マイクの使用許可が必要です');
+    }
+    
+    await _recorder.openRecorder();
+    _isRecorderInitialized = true;
+  }
+  
+  // ユーザープロフィールの読み込み
+  Future<void> _loadUserProfile() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // ユーザーIDを取得
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('userId');
+      final userEmail = prefs.getString('userEmail');
+      
+      if (userId == null || userEmail == null) {
+        throw Exception('ユーザー情報が見つかりません');
+      }
+      
+      _userId = userId;
+      
+      // データベース接続
+      await _databaseService.connect();
+      
+      // プロフィール情報を取得
+      final result = await _databaseService.getUserProfile(userEmail);
+      
+      if (result['success']) {
+        final profileData = result['profile'];
+        
+        setState(() {
+          _nameController.text = profileData['display_name'] ?? '';
+          
+          // プロフィール詳細情報を取得
+          if (profileData.containsKey('profile_details')) {
+            final details = profileData['profile_details'];
+            
+            if (details != null) {
+              // 性別
+              _selectedGender = details['gender'] ?? '女性';
+              
+              // 自己紹介
+              _introductionController.text = details['introduction'] ?? '';
+              
+              // サンプルボイス用テキスト
+              _sampleVoiceController.text = details['voice_text'] ?? '';
+              
+              // 得意ジャンル
+              if (details.containsKey('genres') && details['genres'] != null) {
+                final genres = Map<String, bool>.from(details['genres']);
+                _genres.forEach((key, value) {
+                  if (genres.containsKey(key)) {
+                    _genres[key] = genres[key]!;
+                  }
+                });
+              }
+              
+              // 得意占術
+              if (details.containsKey('fortune_telling_types') && details['fortune_telling_types'] != null) {
+                final types = Map<String, bool>.from(details['fortune_telling_types']);
+                _fortuneTellingTypes.forEach((key, value) {
+                  if (types.containsKey(key)) {
+                    _fortuneTellingTypes[key] = types[key]!;
+                  }
+                });
+              }
+              
+              // 相談スタイル
+              if (details.containsKey('consultation_styles') && details['consultation_styles'] != null) {
+                final styles = Map<String, bool>.from(details['consultation_styles']);
+                _consultationStyles.forEach((key, value) {
+                  if (styles.containsKey(key)) {
+                    _consultationStyles[key] = styles[key]!;
+                  }
+                });
+              }
+              
+              // 録音済みの音声パス
+              _recordedVoicePath = details['voice_path'];
+            }
+          }
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('プロフィール情報の読み込みに失敗しました: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+  
+  // プロフィール画像の選択
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+      
+      if (pickedFile != null) {
+        setState(() {
+          _profileImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('画像の選択に失敗しました: $e')),
+      );
+    }
+  }
+  
+  // 音声録音の開始
+  Future<void> _startRecording() async {
+    if (!_isRecorderInitialized) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('録音機能の初期化に失敗しました')),
+      );
+      return;
+    }
+    
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final path = '${directory.path}/voice_sample_${DateTime.now().millisecondsSinceEpoch}.aac';
+      
+      await _recorder.startRecorder(
+        toFile: path,
+        codec: Codec.aacADTS,
+      );
+      
+      setState(() {
+        _isRecording = true;
+        _recordedVoicePath = path;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('録音の開始に失敗しました: $e')),
+      );
+    }
+  }
+  
+  // 音声録音の停止
+  Future<void> _stopRecording() async {
+    try {
+      await _recorder.stopRecorder();
+      
+      setState(() {
+        _isRecording = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('録音が完了しました')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('録音の停止に失敗しました: $e')),
+      );
+    }
+  }
+  
+  // プロフィールの保存
+  Future<void> _saveProfile() async {
+    if (_userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ユーザー情報が見つかりません')),
+      );
+      return;
+    }
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // ユーザーメールアドレスを取得
+      final prefs = await SharedPreferences.getInstance();
+      final userEmail = prefs.getString('userEmail');
+      
+      if (userEmail == null) {
+        throw Exception('ユーザーメールアドレスが見つかりません');
+      }
+      
+      // プロフィール詳細情報を準備
+      final profileDetails = {
+        'gender': _selectedGender,
+        'introduction': _introductionController.text,
+        'voice_text': _sampleVoiceController.text,
+        'genres': _genres,
+        'fortune_telling_types': _fortuneTellingTypes,
+        'consultation_styles': _consultationStyles,
+        'voice_path': _recordedVoicePath,
+      };
+      
+      // 更新データを準備
+      final updateData = {
+        'display_name': _nameController.text,
+        'profile_details': profileDetails,
+      };
+      
+      // プロフィール画像がある場合は追加
+      if (_profileImage != null) {
+        // 実際のアプリでは、ここで画像をサーバーにアップロードし、
+        // そのURLをprofile_imageフィールドに設定します
+        // このサンプルでは、ローカルパスを保存します
+        updateData['profile_image'] = _profileImage!.path;
+      }
+      
+      // データベース接続
+      await _databaseService.connect();
+      
+      // プロフィール情報を更新
+      final result = await _databaseService.updateUserProfile(userEmail, updateData);
+      
+      if (result['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('プロフィールを保存しました')),
+        );
+      } else {
+        throw Exception(result['message']);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('プロフィールの保存に失敗しました: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+  
+  // メッセージを表示
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$featureは開発中です'),
+        content: Text(message),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -600,17 +849,32 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                     SizedBox(
                                       width: double.infinity,
                                       child: ElevatedButton.icon(
-                                        icon: const Icon(Icons.mic),
-                                        label: const Text('録音する'),
+                                        icon: Icon(_isRecording ? Icons.stop : Icons.mic),
+                                        label: Text(_isRecording ? '録音停止' : '録音する'),
                                         onPressed: () {
-                                          _showNotImplementedMessage('ボイス録音機能');
+                                          if (_isRecording) {
+                                            _stopRecording();
+                                          } else {
+                                            _startRecording();
+                                          }
                                         },
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF3bcfd4),
+                                          backgroundColor: _isRecording ? Colors.red : const Color(0xFF3bcfd4),
                                           padding: const EdgeInsets.symmetric(vertical: 12),
                                         ),
                                       ),
                                     ),
+                                    if (_recordedVoicePath != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8.0),
+                                        child: Text(
+                                          '録音済み: ${_recordedVoicePath!.split('/').last}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -646,22 +910,30 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: ElevatedButton(
-                                  onPressed: () {
-                                    _showNotImplementedMessage('プロフィール保存機能');
-                                  },
+                                  onPressed: _isLoading ? null : _saveProfile,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF3bcfd4),
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(4),
                                     ),
+                                    disabledBackgroundColor: Colors.grey,
                                   ),
-                                  child: const Text(
-                                    '保存する',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
+                                  child: _isLoading
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Text(
+                                        '保存する',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                 ),
                               ),
                             ],

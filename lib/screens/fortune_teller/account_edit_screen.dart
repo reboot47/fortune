@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/fortune_teller_base_screen.dart';
 import '../../widgets/fortune_teller_tab_bar.dart';
+import '../../services/database_service.dart';
 import 'bank_account_screen.dart';
 
 class AccountEditScreen extends StatefulWidget {
@@ -19,8 +21,8 @@ class _AccountEditScreenState extends State<AccountEditScreen> {
   bool _isWaiting = true; // 初期状態は待機中
   
   // アカウント情報
-  final TextEditingController _nameController = TextEditingController(text: '榎並沙知');
-  final TextEditingController _emailController = TextEditingController(text: 'ena.k0310@gmail.com');
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   
   // 通知設定
   final Map<String, bool> _notifications = {
@@ -38,9 +40,19 @@ class _AccountEditScreenState extends State<AccountEditScreen> {
   bool _melodyEnabledDuringSession = true;
   bool _notificationSoundEnabledDuringSession = true;
   
+  // データベースサービス
+  final DatabaseService _databaseService = DatabaseService();
+  
+  // ユーザーID
+  int? _userId;
+  
+  // ローディング状態
+  bool _isLoading = false;
+  
   @override
   void initState() {
     super.initState();
+    _loadUserAccount();
   }
   
   @override
@@ -50,11 +62,213 @@ class _AccountEditScreenState extends State<AccountEditScreen> {
     super.dispose();
   }
   
-  // 未実装機能のメッセージを表示
-  void _showNotImplementedMessage(String feature) {
+  // ユーザーアカウント情報の読み込み
+  Future<void> _loadUserAccount() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // ユーザーIDを取得
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('userId');
+      final userEmail = prefs.getString('userEmail');
+      
+      if (userId == null || userEmail == null) {
+        throw Exception('ユーザー情報が見つかりません');
+      }
+      
+      _userId = userId;
+      
+      // データベース接続
+      await _databaseService.connect();
+      
+      // アカウント情報を取得
+      final result = await _databaseService.getUserProfile(userEmail);
+      
+      if (result['success']) {
+        final profileData = result['profile'];
+        
+        setState(() {
+          _nameController.text = profileData['display_name'] ?? '';
+          _emailController.text = userEmail;
+          
+          // アカウント設定情報を取得
+          if (profileData.containsKey('account_settings')) {
+            final settings = profileData['account_settings'];
+            
+            if (settings != null) {
+              // 通知設定
+              if (settings.containsKey('notifications') && settings['notifications'] != null) {
+                final notifications = Map<String, bool>.from(settings['notifications']);
+                _notifications.forEach((key, value) {
+                  if (notifications.containsKey(key)) {
+                    _notifications[key] = notifications[key]!;
+                  }
+                });
+              }
+              
+              // メロディ設定
+              if (settings.containsKey('melody')) {
+                _selectedMelody = settings['melody'] ?? 1;
+              }
+              
+              // 振動設定
+              if (settings.containsKey('vibration_enabled')) {
+                _vibrationEnabled = settings['vibration_enabled'] ?? true;
+              }
+              
+              // 鑑定中のメロディ設定
+              if (settings.containsKey('melody_enabled_during_session')) {
+                _melodyEnabledDuringSession = settings['melody_enabled_during_session'] ?? true;
+              }
+              
+              // 鑑定中の通知音設定
+              if (settings.containsKey('notification_sound_enabled_during_session')) {
+                _notificationSoundEnabledDuringSession = settings['notification_sound_enabled_during_session'] ?? true;
+              }
+            }
+          }
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('アカウント情報の読み込みに失敗しました: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+  
+  // アカウント設定の保存
+  Future<void> _saveAccountSettings() async {
+    if (_userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ユーザー情報が見つかりません')),
+      );
+      return;
+    }
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // ユーザーメールアドレスを取得
+      final prefs = await SharedPreferences.getInstance();
+      final userEmail = prefs.getString('userEmail');
+      
+      if (userEmail == null) {
+        throw Exception('ユーザーメールアドレスが見つかりません');
+      }
+      
+      // アカウント設定情報を準備
+      final accountSettings = {
+        'notifications': _notifications,
+        'melody': _selectedMelody,
+        'vibration_enabled': _vibrationEnabled,
+        'melody_enabled_during_session': _melodyEnabledDuringSession,
+        'notification_sound_enabled_during_session': _notificationSoundEnabledDuringSession,
+      };
+      
+      // 更新データを準備
+      final updateData = {
+        'display_name': _nameController.text,
+        'account_settings': accountSettings,
+      };
+      
+      // データベース接続
+      await _databaseService.connect();
+      
+      // アカウント情報を更新
+      final result = await _databaseService.updateUserProfile(userEmail, updateData);
+      
+      if (result['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('アカウント設定を保存しました')),
+        );
+      } else {
+        throw Exception(result['message']);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('アカウント設定の保存に失敗しました: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+  
+  // 音声設定の保存
+  Future<void> _saveSoundSettings() async {
+    if (_userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ユーザー情報が見つかりません')),
+      );
+      return;
+    }
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // ユーザーメールアドレスを取得
+      final prefs = await SharedPreferences.getInstance();
+      final userEmail = prefs.getString('userEmail');
+      
+      if (userEmail == null) {
+        throw Exception('ユーザーメールアドレスが見つかりません');
+      }
+      
+      // 音声設定情報を準備
+      final soundSettings = {
+        'melody': _selectedMelody,
+        'vibration_enabled': _vibrationEnabled,
+        'melody_enabled_during_session': _melodyEnabledDuringSession,
+        'notification_sound_enabled_during_session': _notificationSoundEnabledDuringSession,
+      };
+      
+      // 更新データを準備
+      final updateData = {
+        'account_settings': {
+          'sound_settings': soundSettings,
+        },
+      };
+      
+      // データベース接続
+      await _databaseService.connect();
+      
+      // 音声設定を更新
+      final result = await _databaseService.updateUserProfile(userEmail, updateData);
+      
+      if (result['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('音声設定を保存しました')),
+        );
+      } else {
+        throw Exception(result['message']);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('音声設定の保存に失敗しました: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+  
+  // メッセージを表示
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$featureは開発中です'),
+        content: Text(message),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -268,9 +482,7 @@ class _AccountEditScreenState extends State<AccountEditScreen> {
                           height: 44,
                           margin: const EdgeInsets.only(top: 8),
                           child: ElevatedButton(
-                            onPressed: () {
-                              _showNotImplementedMessage('設定の保存');
-                            },
+                            onPressed: _isLoading ? null : _saveAccountSettings,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF3bcfd4),
                               elevation: 0,
@@ -278,15 +490,25 @@ class _AccountEditScreenState extends State<AccountEditScreen> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 10),
+                              disabledBackgroundColor: Colors.grey,
                             ),
-                            child: const Text(
-                              '登録',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text(
+                                  '登録',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
                           ),
                         ),
                       ],
@@ -524,9 +746,7 @@ class _AccountEditScreenState extends State<AccountEditScreen> {
                           height: 44,
                           margin: const EdgeInsets.only(top: 20),
                           child: ElevatedButton(
-                            onPressed: () {
-                              _showNotImplementedMessage('音声設定の保存');
-                            },
+                            onPressed: _isLoading ? null : _saveSoundSettings,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF3bcfd4),
                               elevation: 0,
@@ -534,15 +754,25 @@ class _AccountEditScreenState extends State<AccountEditScreen> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 10),
+                              disabledBackgroundColor: Colors.grey,
                             ),
-                            child: const Text(
-                              '設定',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text(
+                                  '設定',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
                           ),
                         ),
                       ],
