@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/custom_bottom_navigation.dart';
+import '../../services/database_service.dart';
 import 'fortune_teller_home_screen.dart';
+import 'profile_edit_screen.dart';
 
 class FortuneTellerMyPageScreen extends StatefulWidget {
   const FortuneTellerMyPageScreen({Key? key}) : super(key: key);
@@ -14,14 +17,111 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
   int _currentIndex = 4; // マイページは4番目のタブ
   
   // 編集可能な一言メッセージ
-  String oneWordMessage = '占い師が相談に来る占い師◆結果、アドバイスは的確です✨';
+  String oneWordMessage = '';
   bool isEditingMessage = false;
   final TextEditingController _messageController = TextEditingController();
+  
+  // ユーザー情報
+  Map<String, dynamic> _userData = {};
+  bool _isLoading = true;
+  
+  // データベースサービス
+  final DatabaseService _databaseService = DatabaseService();
 
   @override
   void initState() {
     super.initState();
-    _messageController.text = oneWordMessage;
+    _loadUserProfile();
+  }
+  
+  // ユーザープロフィールを読み込む
+  Future<void> _loadUserProfile() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // ユーザーIDを取得
+      final prefs = await SharedPreferences.getInstance();
+      final userEmail = prefs.getString('userEmail');
+      
+      if (userEmail == null) {
+        throw Exception('ユーザーメールアドレスが見つかりません');
+      }
+      
+      // データベース接続
+      await _databaseService.connect();
+      
+      // プロフィール情報を取得
+      final result = await _databaseService.getUserProfile(userEmail);
+      
+      if (result['success']) {
+        setState(() {
+          _userData = result['profile'];
+          
+          // 一言メッセージを設定
+          oneWordMessage = _userData['one_word_message'] ?? '';
+          _messageController.text = oneWordMessage;
+        });
+      } else {
+        throw Exception(result['message']);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('プロフィール情報の読み込みに失敗しました: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+  
+  // 一言メッセージを保存
+  Future<void> _saveOneWordMessage() async {
+    if (isEditingMessage) {
+      setState(() {
+        isEditingMessage = false;
+        oneWordMessage = _messageController.text;
+      });
+      
+      try {
+        // ユーザーメールアドレスを取得
+        final prefs = await SharedPreferences.getInstance();
+        final userEmail = prefs.getString('userEmail');
+        
+        if (userEmail == null) {
+          throw Exception('ユーザーメールアドレスが見つかりません');
+        }
+        
+        // 更新データを準備
+        final updateData = {
+          'one_word_message': oneWordMessage,
+        };
+        
+        // データベース接続
+        await _databaseService.connect();
+        
+        // 一言メッセージを更新
+        final result = await _databaseService.updateUserProfile(userEmail, updateData);
+        
+        if (result['success']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('一言メッセージを保存しました')),
+          );
+        } else {
+          throw Exception(result['message']);
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('一言メッセージの保存に失敗しました: $e')),
+        );
+      }
+    } else {
+      setState(() {
+        isEditingMessage = true;
+      });
+    }
   }
 
   @override
@@ -133,12 +233,32 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            '占い師が相談に来る占い師◆結果、アドバイスは的確です✨',
-                            style: TextStyle(color: Colors.grey[800], fontSize: 13),
+                          child: isEditingMessage
+                            ? TextField(
+                                controller: _messageController,
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  hintText: '一言メッセージを入力してください',
+                                  hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
+                                ),
+                                style: TextStyle(color: Colors.grey[800], fontSize: 13),
+                                maxLines: 2,
+                              )
+                            : Text(
+                                oneWordMessage.isNotEmpty
+                                    ? oneWordMessage
+                                    : '一言メッセージを設定してください',
+                                style: TextStyle(color: Colors.grey[800], fontSize: 13),
+                              ),
+                        ),
+                        GestureDetector(
+                          onTap: _saveOneWordMessage,
+                          child: Icon(
+                            isEditingMessage ? Icons.check : Icons.edit,
+                            color: const Color(0xFF3bcfd4),
+                            size: 20,
                           ),
                         ),
-                        Icon(Icons.edit, color: const Color(0xFF3bcfd4), size: 20),
                       ],
                     ),
                   ),
@@ -207,9 +327,9 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Text(
-                              '1,005,445.49pts',
-                              style: TextStyle(
+                            Text(
+                              '${_userData['points'] ?? 0}pts',
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -251,8 +371,41 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
     );
   }
 
-  // プロフィールカード（画像1を忠実に再現）
+  // プロフィールカード
   Widget _buildProfileCard() {
+    if (_isLoading) {
+      return Container(
+        margin: const EdgeInsets.all(12),
+        height: 200,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 0,
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
+    // プロフィール情報を取得
+    final displayName = _userData['display_name'] ?? '';
+    final oneWordMsg = _userData['one_word_message'] ?? '';
+    final profileImageUrl = _userData['profile_image'] ?? '';
+    final pricePerChar = _userData['price_per_char'] ?? 8;
+    final responseTime = _userData['response_time'] ?? 7;
+    final reviewCount = _userData['review_count'] ?? 0;
+    final reviewRating = _userData['review_rating'] ?? 5.0;
+    final reviewComment = _userData['review_comment'] ?? '';
+    final points = _userData['points'] ?? 0;
+    
     return Container(
       margin: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -275,49 +428,81 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 画像1の通りプロフィール画像（ピンクのグラデーション背景）
-                Container(
-                  width: 85,
-                  height: 85,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.pink[100]!,
-                        Colors.pink[50]!,
-                      ],
+                // プロフィール画像 - クリックでプロフィール編集画面へ
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileEditScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 85,
+                    height: 85,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.pink[100]!,
+                          Colors.pink[50]!,
+                        ],
+                      ),
                     ),
-                  ),
-                  child: Center(
-                    child: ClipOval(
-                      child: Image.network(
-                        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1288&auto=format&fit=crop',
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
+                    child: Center(
+                      child: ClipOval(
+                        child: profileImageUrl.isNotEmpty
+                            ? Image.network(
+                                profileImageUrl,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 80,
+                                    height: 80,
+                                    color: Colors.grey[200],
+                                    child: const Icon(
+                                      Icons.person,
+                                      size: 40,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                width: 80,
+                                height: 80,
+                                color: Colors.grey[200],
+                                child: const Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Colors.grey,
+                                ),
+                              ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                // 名前とプロフィール情報（画像1と同じフォントサイズ・レイアウト）
+                // 名前とプロフィール情報
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '霊感お姉さん',
-                        style: TextStyle(
+                      Text(
+                        displayName.isNotEmpty ? displayName : '名前未設定',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 2),
-                      const Text(
-                        '占い師が相談に来る占い師🔮結果、アドバイスは的確です⭐️',
-                        style: TextStyle(
+                      Text(
+                        oneWordMsg.isNotEmpty ? oneWordMsg : '一言メッセージを設定してください',
+                        style: const TextStyle(
                           color: Color(0xFF444444),
                           fontSize: 12,
                         ),
@@ -326,9 +511,9 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
                       Row(
                         children: [
                           // 料金情報
-                          const Text(
-                            '8pts/1文字',
-                            style: TextStyle(
+                          Text(
+                            '${pricePerChar}pts/1文字',
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Colors.grey,
                             ),
@@ -337,9 +522,9 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
                           // 返信時間
                           const Icon(Icons.access_time, size: 12, color: Colors.grey),
                           const SizedBox(width: 2),
-                          const Text(
-                            '7 分以内',
-                            style: TextStyle(
+                          Text(
+                            '$responseTime 分以内',
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Colors.grey,
                             ),
@@ -352,14 +537,14 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            // レビュー情報（画像1と同じスター表示とレビュー数）
+            // レビュー情報
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
+                const Text(
                   'お客様からの声 ',
-                  style: const TextStyle(
-                    color: const Color(0xFF666666),
+                  style: TextStyle(
+                    color: Color(0xFF666666),
                     fontSize: 13,
                   ),
                 ),
@@ -370,13 +555,13 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
                     (index) => Icon(
                       Icons.star,
                       size: 14,
-                      color: Colors.amber,
+                      color: index < reviewRating.floor() ? Colors.amber : Colors.grey[300],
                     ),
                   ),
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '(62020)',
+                  '($reviewCount)',
                   style: TextStyle(
                     color: Colors.grey[500],
                     fontSize: 12,
@@ -385,9 +570,9 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
               ],
             ),
             const SizedBox(height: 4),
-            // レビューコメント（画像1と同じテキスト）
+            // レビューコメント
             Text(
-              '先生しか勝たん！！\n本当に良い年月見てもらってます…',
+              reviewComment.isNotEmpty ? reviewComment : 'まだレビューはありません',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.3,
@@ -402,44 +587,61 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
 
     // メニューカードウィジェット（画像1通り）
   Widget _buildMenuCard({required IconData icon, required String label}) {
-    return Container(
-      width: 100,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3bcfd4).withOpacity(0.1),
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: () {
+        // プロフィールメニューの場合、プロフィール編集画面に遷移
+        if (label == 'プロフィール') {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const ProfileEditScreen(),
             ),
-            child: Icon(
-              icon,
-              color: const Color(0xFF3bcfd4),
-              size: 28,
+          );
+        } else {
+          // その他のメニューは未実装
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$labelは開発中です')),
+          );
+        }
+      },
+      child: Container(
+        width: 100,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF333333),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3bcfd4).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF3bcfd4),
+                size: 28,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF333333),
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
+        ),
       ),
     );
   }

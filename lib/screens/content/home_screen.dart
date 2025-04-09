@@ -7,6 +7,8 @@ import '../../widgets/circular_menu.dart';
 import '../../widgets/common_header.dart';
 import 'my_page_screen.dart';
 import '../settings/settings_screen.dart';
+import '../fortune/fortune_selection_screen.dart';
+import '../fortune/fortune_history_screen.dart';
 
 // 画面インデックス管理用の列挙型
 enum AppScreen { home, history, menu, ranking, profile }
@@ -300,11 +302,20 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
               children: [
-                _buildServiceCard(
-                  icon: Icons.star,
-                  title: '占いサービス',
-                  description: '運勢をチェック',
-                  color: const Color(0xFF1a237e),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => FortuneSelectionScreen(userData: widget.userData),
+                      ),
+                    );
+                  },
+                  child: _buildServiceCard(
+                    icon: Icons.star,
+                    title: '占いサービス',
+                    description: '運勢をチェック',
+                    color: const Color(0xFF1a237e),
+                  ),
                 ),
                 _buildServiceCard(
                   icon: Icons.chat_bubble,
@@ -354,7 +365,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              // 占い履歴画面へ遷移
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => FortuneHistoryScreen(userData: widget.userData),
+                ),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
               foregroundColor: Colors.white,
@@ -363,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            child: const Text('占いを始める'),
+            child: const Text('占い履歴を見る'),
           ),
         ],
       ),
