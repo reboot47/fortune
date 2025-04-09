@@ -502,36 +502,46 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                       ),
                                     ),
                                     // プロフィール画像
-                                    const CircleAvatar(
+                                    CircleAvatar(
                                       radius: 50,
-                                      backgroundImage: NetworkImage(
-                                        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1288&auto=format&fit=crop',
-                                      ),
+                                      backgroundImage: _profileImage != null
+                                          ? FileImage(_profileImage!)
+                                          : (_userData != null && _userData['profile_image'] != null && _userData['profile_image'].isNotEmpty)
+                                              ? NetworkImage(_userData['profile_image'])
+                                              : const NetworkImage(
+                                                  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1288&auto=format&fit=crop',
+                                                ),
+                                      onBackgroundImageError: (_, __) {
+                                        // 画像読み込みエラー時の処理
+                                      },
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
                                 // 写真選択ボタン
-                                Container(
-                                  width: 180,
-                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.photo_camera, color: Colors.grey[700], size: 20),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '写真選択',
-                                        style: TextStyle(
-                                          color: Colors.grey[700],
-                                          fontSize: 15,
+                                GestureDetector(
+                                  onTap: _pickImage,
+                                  child: Container(
+                                    width: 180,
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.photo_camera, color: Colors.grey[700], size: 20),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '写真選択',
+                                          style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontSize: 15,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
 
