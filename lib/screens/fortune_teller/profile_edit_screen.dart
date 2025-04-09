@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path/path.dart' as path;
 import '../../widgets/fortune_teller_base_screen.dart';
 import '../../widgets/fortune_teller_tab_bar.dart';
 import '../../services/database_service.dart';
@@ -24,58 +25,61 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   int _currentIndex = 4; // マイページタブが選択されている状態
   bool _isWaiting = true; // 初期状態は待機中
   
+  // サービスインスタンス
+  final ImagePicker _picker = ImagePicker();
+  
   // 性別選択
   String _selectedGender = '女性';
   
   // 得意ジャンルのチェックボックス状態
   final Map<String, bool> _genres = {
-    '相性': true,
-    '結婚': true,
+    '相性': false,
+    '結婚': false,
     '離婚': false,
     '夫婦仲': false,
-    '復縁': true,
-    '不倫': true,
+    '復縁': false,
+    '不倫': false,
     '縁結び': false,
     '縁切り': false,
-    '遠距離恋愛': true,
+    '遠距離恋愛': false,
     '同性愛': false,
     '三角関係': false,
     '金運': false,
     '仕事': false,
-    '起業': true,
-    '転職': true,
+    '起業': false,
+    '転職': false,
     '対人関係': false,
     '自分の気持ち': false,
-    '相手の気持ち': true,
+    '相手の気持ち': false,
     '家庭問題': false,
-    '運勢': true,
+    '運勢': false,
     '開運方法': false,
   };
   
   // 得意占術のチェックボックス状態
   final Map<String, bool> _fortuneTellingTypes = {
     '透視': false,
-    '霊感': true,
-    '送念': true,
+    '霊感': false,
+    '送念': false,
     '祈願': false,
     '祈祷': false,
-    '波動修正': true,
+    '波動修正': false,
     '遠隔ヒーリング': false,
     'オーラ': false,
     'ルーン': false,
-    'タロット': true,
+    'タロット': false,
     'オラクルカード': false,
     'ルノルマンカード': false,
     'パワーストーン': false,
     '数秘術': false,
-    '東洋占星術': true,
+    '東洋占星術': false,
     '西洋占星術': false,
     '夢占い': false,
     '血液型': false,
     'レイキ': false,
     'ダウジング': false,
     'スピリチュアル': false,
-    'チャネリング': true,
+    'チャネリング': false,
     'チャクラ': false,
     'カウンセリング': false,
     'セラピー': false,
@@ -96,7 +100,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     '簡潔': false,
     '素早い': false,
     'ゆっくり': false,
-    'じっくり': true,
+    'じっくり': false,
     '丁寧': false,
     '優しい': false,
     '暖かい': false,
@@ -104,8 +108,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     'ズバッと': false,
     '論理的': false,
     'ユーモア': false,
-    'フレンドリー': true,
-    'ポジティブ': true,
+    'フレンドリー': false,
+    'ポジティブ': false,
     '頼りになる': false,
     '聞き上手': false,
     '話し上手': false,
@@ -126,10 +130,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   // ユーザーID
   int? _userId;
   
-  // プロフィール画像
-  File? _profileImage;
-  final ImagePicker _imagePicker = ImagePicker();
-  
   // 音声録音関連
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   bool _isRecording = false;
@@ -138,6 +138,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   
   // ローディング状態
   bool _isLoading = false;
+  bool _isSaving = false;
   
   @override
   void initState() {
@@ -406,6 +407,100 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
   
+  // プロフィール画像を選択
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        // アプリディレクトリに画像を保存
+        final appDir = await getApplicationDocumentsDirectory();
+        final fileName = path.basename(pickedFile.path);
+        final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
+        
+        // SharedPreferencesに画像パスを保存
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profileImagePath', savedImage.path);
+        
+        setState(() {
+          _profileImage = savedImage;
+          _networkImageUrl = null; // ローカル画像を使用するためネットワーク画像をクリア
+        });
+      }
+    } catch (e) {
+      print('画像選択エラー: $e');
+      _showMessage('画像の選択に失敗しました: $e');
+    }
+  }
+  
+  // プロフィールを保存
+  Future<void> _saveProfile() async {
+    // 入力チェック
+    if (_nameController.text.trim().isEmpty) {
+      _showMessage('名前を入力してください');
+      return;
+    }
+    
+    // 得意ジャンルの選択数をチェック
+    final selectedGenres = _genres.entries.where((e) => e.value).length;
+    if (selectedGenres < 3 || selectedGenres > 9) {
+      _showMessage('得意ジャンルは3〜9つ選択してください');
+      return;
+    }
+    
+    // 得意占術の選択数をチェック
+    final selectedTypes = _fortuneTellingTypes.entries.where((e) => e.value).length;
+    if (selectedTypes < 1 || selectedTypes > 6) {
+      _showMessage('得意占術は1〜6つ選択してください');
+      return;
+    }
+    
+    // 相談スタイルの選択数をチェック
+    final selectedStyles = _consultationStyles.entries.where((e) => e.value).length;
+    if (selectedStyles != 3) {
+      _showMessage('相談スタイルは3つ選択してください');
+      return;
+    }
+    
+    setState(() {
+      _isSaving = true;
+    });
+    
+    try {
+      // プロフィールデータを作成
+      final profileData = <String, dynamic>{
+        'name': _nameController.text.trim(),
+        'gender': _selectedGender,
+        'introduction': _introductionController.text,
+        'sample_voice_text': _sampleVoiceController.text,
+        'genres': _genres.entries.where((e) => e.value).map((e) => e.key).toList(),
+        'fortune_telling_types': _fortuneTellingTypes.entries.where((e) => e.value).map((e) => e.key).toList(),
+        'consultation_styles': _consultationStyles.entries.where((e) => e.value).map((e) => e.key).toList(),
+      };
+      
+      // プロフィール画像のパスを取得してデータに追加
+      final imagePath = await _fortuneTellerService.getProfileImagePath();
+      if (imagePath != null && imagePath.isNotEmpty) {
+        profileData['profile_image'] = imagePath;
+      }
+      
+      // プロフィールを保存
+      final result = await _fortuneTellerService.saveFortuneTellerProfile(profileData);
+      
+      if (result['success'] == true) {
+        _showMessage('プロフィールを保存しました');
+      } else {
+        _showMessage('保存に失敗しました: ${result['message']}');
+      }
+    } catch (e) {
+      print('プロフィール保存エラー: $e');
+      _showMessage('プロフィールの保存に失敗しました: $e');
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return FortuneTellerBaseScreen(
@@ -437,7 +532,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF3bcfd4)))
+          : Column(
         children: [
           // 共通タブバー
           FortuneTellerTabBar(
@@ -508,18 +605,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                           ? FileImage(_profileImage!)
                                           : (_userData != null && _userData['profile_image'] != null && _userData['profile_image'].isNotEmpty)
                                               ? NetworkImage(_userData['profile_image'])
-                                              : const NetworkImage(
-                                                  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1288&auto=format&fit=crop',
-                                                ),
-                                      onBackgroundImageError: (_, __) {
-                                        // 画像読み込みエラー時の処理
-                                      },
+                                              : null,
+                                      backgroundColor: Colors.grey[200],
+                                      child: _profileImage == null && (_userData == null || _userData['profile_image'] == null || _userData['profile_image'].isEmpty)
+                                          ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                                          : null,
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
                                 // 写真選択ボタン
-                                GestureDetector(
+                                InkWell(
                                   onTap: _pickImage,
                                   child: Container(
                                     width: 180,
@@ -544,7 +640,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                     ),
                                   ),
                                 ),
-
+                                const SizedBox(height: 8),
+                                // プロフィール画像のヘルプリンク
+                                const Text(
+                                  '【運営ブログ】→プロフィール画像を用意しよう',
+                                  style: TextStyle(
+                                    color: Color(0xFF3bcfd4),
+                                    fontSize: 14,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -899,7 +1004,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () {
-                                    _showNotImplementedMessage('プレビュー機能');
+                                    _showMessage('プレビュー機能は開発中です');
                                   },
                                   style: OutlinedButton.styleFrom(
                                     side: const BorderSide(color: Color(0xFF3bcfd4)),
