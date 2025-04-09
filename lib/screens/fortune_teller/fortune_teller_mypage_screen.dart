@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/custom_bottom_navigation.dart';
 import '../../services/database_service.dart';
 import 'fortune_teller_home_screen.dart';
+import 'profile_edit_screen.dart';
 
 class FortuneTellerMyPageScreen extends StatefulWidget {
   const FortuneTellerMyPageScreen({Key? key}) : super(key: key);
@@ -427,52 +428,61 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // プロフィール画像
-                Container(
-                  width: 85,
-                  height: 85,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.pink[100]!,
-                        Colors.pink[50]!,
-                      ],
+                // プロフィール画像 - クリックでプロフィール編集画面へ
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileEditScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 85,
+                    height: 85,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.pink[100]!,
+                          Colors.pink[50]!,
+                        ],
+                      ),
                     ),
-                  ),
-                  child: Center(
-                    child: ClipOval(
-                      child: profileImageUrl.isNotEmpty
-                          ? Image.network(
-                              profileImageUrl,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: 80,
-                                  height: 80,
-                                  color: Colors.grey[200],
-                                  child: const Icon(
-                                    Icons.person,
-                                    size: 40,
-                                    color: Colors.grey,
-                                  ),
-                                );
-                              },
-                            )
-                          : Container(
-                              width: 80,
-                              height: 80,
-                              color: Colors.grey[200],
-                              child: const Icon(
-                                Icons.person,
-                                size: 40,
-                                color: Colors.grey,
+                    child: Center(
+                      child: ClipOval(
+                        child: profileImageUrl.isNotEmpty
+                            ? Image.network(
+                                profileImageUrl,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 80,
+                                    height: 80,
+                                    color: Colors.grey[200],
+                                    child: const Icon(
+                                      Icons.person,
+                                      size: 40,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                width: 80,
+                                height: 80,
+                                color: Colors.grey[200],
+                                child: const Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Colors.grey,
+                                ),
                               ),
-                            ),
+                      ),
                     ),
                   ),
                 ),
@@ -577,44 +587,61 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
 
     // メニューカードウィジェット（画像1通り）
   Widget _buildMenuCard({required IconData icon, required String label}) {
-    return Container(
-      width: 100,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3bcfd4).withOpacity(0.1),
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: () {
+        // プロフィールメニューの場合、プロフィール編集画面に遷移
+        if (label == 'プロフィール') {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const ProfileEditScreen(),
             ),
-            child: Icon(
-              icon,
-              color: const Color(0xFF3bcfd4),
-              size: 28,
+          );
+        } else {
+          // その他のメニューは未実装
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$labelは開発中です')),
+          );
+        }
+      },
+      child: Container(
+        width: 100,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF333333),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3bcfd4).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF3bcfd4),
+                size: 28,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF333333),
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
+        ),
       ),
     );
   }
