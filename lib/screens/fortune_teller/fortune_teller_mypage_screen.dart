@@ -140,31 +140,7 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
           // 状態変更の通知
         });
       },
-      customAppBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        title: Row(
-          children: [
-            Text(
-              'オフライン',
-              style: TextStyle(
-                color: const Color(0xFF3bcfd4),
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.chat_bubble_outline, color: Colors.grey),
-          onPressed: () {},
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.grey),
-            onPressed: () {},
-          ),
-        ],
-      ),
+
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

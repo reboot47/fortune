@@ -19,8 +19,8 @@ class FortuneTellerTabBar extends StatelessWidget {
     final List<String> tabs = [
       'プロフィール設定', 
       'テンプレート編集', 
-      'アカウント編集', 
-      '銀行口座情報編集',
+      'アカウント設定', 
+      '銀行口座設定',
     ];
 
     return Container(

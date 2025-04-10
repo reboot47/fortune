@@ -194,27 +194,6 @@ class _TemplateEditScreenState extends State<TemplateEditScreen> {
           _isWaiting = value;
         });
       },
-      customAppBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        title: Text(
-          _isWaiting ? 'チャット相談中' : 'オフライン',
-          style: const TextStyle(
-            color: Color(0xFF3bcfd4),
-            fontSize: 16,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.chat_bubble_outline, color: Colors.grey),
-          onPressed: () {},
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.grey),
-            onPressed: () {},
-          ),
-        ],
-      ),
       body: Column(
         children: [
           // 共通タブバー

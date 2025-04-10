@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/fortune_teller_base_screen.dart';
+import '../../widgets/fortune_teller_tab_bar.dart';
 
 /// 占い師用の銀行口座情報編集画面
 class BankAccountScreen extends StatefulWidget {
@@ -30,6 +31,10 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
       body: Column(
         children: [
           // 共通タブバー
+          FortuneTellerTabBar(
+            currentTabIndex: _selectedTabIndex,
+            parentContext: context,
+          ),
           Expanded(
             child: Center(
               child: Column(

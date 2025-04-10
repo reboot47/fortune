@@ -59,15 +59,47 @@ class _FortuneTellerBaseScreenState extends State<FortuneTellerBaseScreen> {
       appBar: widget.customAppBar ?? AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        title: Text(
-          _isWaiting ? 'チャット相談中' : 'オフライン',
-          style: TextStyle(
-            color: const Color(0xFF3bcfd4),
-            fontSize: 16,
-          ),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            // 左側のチャットアイコン
+            Padding(
+              padding: const EdgeInsets.only(left: 10),
+              child: Icon(
+                Icons.chat_bubble_outline, 
+                color: Color(0xFF3bcfd4), 
+                size: 26,
+              ),
+            ),
+            
+            // テキストも左寄せ
+            Padding(
+              padding: const EdgeInsets.only(left: 10),
+              child: Text(
+                _isWaiting ? 'チャット相談中' : 'オフライン',
+                style: const TextStyle(
+                  color: Color(0xFF3bcfd4),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            
+            // 右側のスペースを埋める
+            const Spacer(),
+            
+            // 右側の通知アイコン
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: Icon(
+                Icons.notifications_none, 
+                color: Color(0xFF3bcfd4), 
+                size: 26,
+              ),
+            ),
+          ],
         ),
-        centerTitle: widget.centerTitle,
-        actions: widget.actions,
       ),
       body: widget.body,
       bottomNavigationBar: FortuneTellerBottomBar(

@@ -127,57 +127,6 @@ class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with 
       currentIndex: _currentIndex,
       isWaiting: _isWaiting,
       onWaitingStatusChanged: _toggleWaitingStatus,
-      customAppBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        title: Row(
-          children: [
-            const SizedBox(width: 8),
-            const Icon(Icons.chat_bubble_outline, color: Colors.grey, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              _isWaiting ? 'オンライン' : 'オフライン',
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: Stack(
-              children: [
-                const Icon(Icons.notifications_none, color: Colors.grey),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.pink,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 14,
-                      minHeight: 14,
-                    ),
-                    child: const Text(
-                      '3',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 8,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                )
-              ],
-            ),
-            onPressed: () => _showNotImplementedMessage('通知機能'),
-          ),
-        ],
-      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF3bcfd4)))
           : _buildHomeContent(),
