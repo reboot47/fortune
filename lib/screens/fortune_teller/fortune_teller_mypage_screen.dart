@@ -15,6 +15,9 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
   // 現在表示中のタブ
   int _currentIndex = 4; // マイページは4番目のタブ
   
+  // 待機状態管理
+  bool _isWaiting = false;
+  
   // 編集可能な一言メッセージ
   String oneWordMessage = '';
   bool isEditingMessage = false;
@@ -31,6 +34,15 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
   void initState() {
     super.initState();
     _loadUserProfile();
+    _loadWaitingStatus();
+  }
+  
+  // 待機状態を読み込む
+  Future<void> _loadWaitingStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isWaiting = prefs.getBool('is_waiting') ?? false;
+    });
   }
   
   // ユーザープロフィールを読み込む
@@ -123,6 +135,25 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
     }
   }
 
+  // 待機状態の切り替え
+  void _toggleWaitingStatus(bool value) {
+    setState(() {
+      _isWaiting = value;
+    });
+
+    // SharedPreferencesに保存
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setBool('is_waiting', _isWaiting);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isWaiting ? '待機中になりました' : 'オフラインになりました'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _messageController.dispose();
@@ -133,15 +164,11 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
   Widget build(BuildContext context) {
     return FortuneTellerBaseScreen(
       currentIndex: _currentIndex,
-      isWaiting: false,  // マイページではデフォルトでオフライン表示
-      onWaitingStatusChanged: (value) {
-        // 必要に応じて待機状態を処理
-        setState(() {
-          // 状態変更の通知
-        });
-      },
-
-      body: SingleChildScrollView(
+      isWaiting: _isWaiting,
+      onWaitingStatusChanged: _toggleWaitingStatus,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF3bcfd4)))
+          : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -417,16 +444,9 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
                   child: Container(
                     width: 85,
                     height: 85,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.pink[100]!,
-                          Colors.pink[50]!,
-                        ],
-                      ),
+                      color: Color(0xFF3bcfd4),
                     ),
                     child: Center(
                       child: ClipOval(

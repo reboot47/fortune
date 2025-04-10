@@ -146,6 +146,12 @@
       "languageVersion": "3.5"
     },
     {
+      "name": "flutter_localizations",
+      "rootUri": "file:///opt/homebrew/Caskroom/flutter/3.29.2/flutter/packages/flutter_localizations",
+      "packageUri": "lib/",
+      "languageVersion": "3.7"
+    },
+    {
       "name": "flutter_native_splash",
       "rootUri": "file:///Users/reboot47/.pub-cache/hosted/pub.dev/flutter_native_splash-2.4.6",
       "packageUri": "lib/",
@@ -614,7 +620,7 @@
       "languageVersion": "3.7"
     }
   ],
-  "generated": "2025-04-09T17:20:13.090383Z",
+  "generated": "2025-04-10T17:21:17.870785Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///opt/homebrew/Caskroom/flutter/3.29.2/flutter",

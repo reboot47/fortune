@@ -13,6 +13,9 @@ class FortuneTellerHomeScreen extends StatefulWidget {
   State<FortuneTellerHomeScreen> createState() => _FortuneTellerHomeScreenState();
 }
 
+// アプリ全体で共有するドロワーキー
+final GlobalKey<ScaffoldState> globalScaffoldKey = GlobalKey<ScaffoldState>();
+
 class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with SingleTickerProviderStateMixin {
   String _fortuneTellerName = '占い師';
   bool _isLoading = true;
@@ -135,62 +138,79 @@ class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with 
 
   Widget _buildHomeContent() {
     return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // バナー広告
           Container(
             width: double.infinity,
-            height: 80,
-            margin: const EdgeInsets.all(8),
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            height: 70, // 高さを増やす
             decoration: BoxDecoration(
+              color: const Color(0xFFFCE4EC),
               borderRadius: BorderRadius.circular(8),
-              image: const DecorationImage(
-                image: AssetImage('assets/images/banner_placeholder.png'),
-                fit: BoxFit.cover,
-              ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.pink[100]!,
-                            Colors.pink[50]!,
-                          ],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 30,
+                    decoration: const BoxDecoration(
+                      color: Colors.pink,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(8),
+                        bottomLeft: Radius.circular(8),
+                      ),
+                    ),
+                    child: Center(
+                      child: RotatedBox(
+                        quarterTurns: -1,
+                        child: Text(
+                          '新企画',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Column(
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 35),
+                      Expanded(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              color: Colors.pink,
-                              child: const Text(
-                                '雑誌',
-                                style: TextStyle(color: Colors.white, fontSize: 10),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              '美人 雑誌掲載企画',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  color: Colors.pink,
+                                  child: const Text(
+                                    '雑誌',
+                                    style: TextStyle(color: Colors.white, fontSize: 9),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  '美人 雑誌掲載企画',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 4),
                             Row(
@@ -200,45 +220,53 @@ class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with 
                                   color: Colors.white,
                                   child: const Text(
                                     '期間',
-                                    style: TextStyle(fontSize: 10),
+                                    style: TextStyle(fontSize: 9),
                                   ),
                                 ),
                                 const SizedBox(width: 4),
                                 const Text(
                                   '3/27(土)～4/3(日)',
-                                  style: TextStyle(fontSize: 10),
+                                  style: TextStyle(fontSize: 9),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                        const Spacer(),
-                        const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '百花',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: Colors.pink,
+                            const SizedBox(height: 4),
+                            // この行を修正して、FittedBoxでテキストをコンテナに収める
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Text(
+                                      '百花',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.pink,
+                                      ),
+                                    ),
+                                    Text(
+                                      ' ランキング上位20名を掲載',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.pink,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            Text(
-                              'ランキング上位20名を掲載',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: Colors.pink,
-                              ),
-                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
@@ -264,6 +292,7 @@ class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with 
                 ),
               ),
               labelColor: Colors.black,
+              labelStyle: const TextStyle(fontWeight: FontWeight.w500),
               unselectedLabelColor: Colors.grey,
               tabs: const [
                 Tab(text: '日別'),
@@ -274,7 +303,7 @@ class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with 
 
           // ポイント表示
           SizedBox(
-            height: 140,
+            height: 120,
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -285,38 +314,41 @@ class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with 
                       child: Container(
                         height: double.infinity,
                         color: const Color(0xFFE0F7F5),
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Text(
                               '本日の獲得ポイント',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Color(0xFF3bcfd4),
                                 fontSize: 14,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: _todayPoints,
-                                    style: TextStyle(
-                                      color: Color(0xFF3bcfd4),
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                const Text(
+                                  '—',
+                                  style: TextStyle(
+                                    color: Color(0xFF3bcfd4),
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.0,
                                   ),
-                                  TextSpan(
-                                    text: 'pts',
-                                    style: TextStyle(
-                                      color: Color(0xFF3bcfd4),
-                                      fontSize: 14,
-                                    ),
+                                ),
+                                const Text(
+                                  'pts',
+                                  style: TextStyle(
+                                    color: Color(0xFF3bcfd4),
+                                    fontSize: 14,
+                                    height: 1.0,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -326,38 +358,41 @@ class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with 
                       child: Container(
                         height: double.infinity,
                         color: const Color(0xFFFCE4EC),
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Text(
                               '本日の目標ポイント',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.pink,
                                 fontSize: 14,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: _monthlyTargetPoints,
-                                    style: TextStyle(
-                                      color: Colors.pink,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text(
+                                  _monthlyTargetPoints,
+                                  style: const TextStyle(
+                                    color: Colors.pink,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.0,
                                   ),
-                                  TextSpan(
-                                    text: 'pts',
-                                    style: TextStyle(
-                                      color: Colors.pink,
-                                      fontSize: 14,
-                                    ),
+                                ),
+                                const Text(
+                                  'pts',
+                                  style: TextStyle(
+                                    color: Colors.pink,
+                                    fontSize: 14,
+                                    height: 1.0,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -366,45 +401,48 @@ class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with 
                   ],
                 ),
                 
-                // 月別タブのコンテンツ（同様のレイアウトで月間データ表示）
+                // 月別タブのコンテンツ
                 Row(
                   children: [
                     Expanded(
                       child: Container(
                         height: double.infinity,
                         color: const Color(0xFFE0F7F5),
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              '今月の獲得ポイント',
+                            const Text(
+                              '当月の獲得ポイント',
                               style: TextStyle(
                                 color: Color(0xFF3bcfd4),
                                 fontSize: 14,
                               ),
                             ),
-                            SizedBox(height: 8),
-                            RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: '125,480',
-                                    style: TextStyle(
-                                      color: Color(0xFF3bcfd4),
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                const Text(
+                                  '102,345.67',
+                                  style: TextStyle(
+                                    color: Color(0xFF3bcfd4),
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.0,
                                   ),
-                                  TextSpan(
-                                    text: 'pts',
-                                    style: TextStyle(
-                                      color: Color(0xFF3bcfd4),
-                                      fontSize: 14,
-                                    ),
+                                ),
+                                const Text(
+                                  'pts',
+                                  style: TextStyle(
+                                    color: Color(0xFF3bcfd4),
+                                    fontSize: 14,
+                                    height: 1.0,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -413,39 +451,42 @@ class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with 
                     Expanded(
                       child: Container(
                         height: double.infinity,
-                        color: const Color(0xFFFCE4EC),
-                        padding: const EdgeInsets.all(16),
+                        color: const Color(0xFFFFF3E0),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              '月間目標ポイント',
+                            const Text(
+                              '当月の目標ポイント',
                               style: TextStyle(
-                                color: Colors.pink,
+                                color: Colors.orange,
                                 fontSize: 14,
                               ),
                             ),
-                            SizedBox(height: 8),
-                            RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: '500,000',
-                                    style: TextStyle(
-                                      color: Colors.pink,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                const Text(
+                                  '1,250,000',
+                                  style: TextStyle(
+                                    color: Colors.orange,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.0,
                                   ),
-                                  TextSpan(
-                                    text: 'pts',
-                                    style: TextStyle(
-                                      color: Colors.pink,
-                                      fontSize: 14,
-                                    ),
+                                ),
+                                const Text(
+                                  'pts',
+                                  style: TextStyle(
+                                    color: Colors.orange,
+                                    fontSize: 14,
+                                    height: 1.0,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -460,234 +501,466 @@ class _FortuneTellerHomeScreenState extends State<FortuneTellerHomeScreen> with 
           // 統計情報
           Row(
             children: [
-              _buildStatItem('待機時間', '${_waitingHours}時間'),
-              _buildStatItem('稼働日数', '${_workingDays}日'),
-              _buildStatItem('教えて先生回答数', '${_teacherResponses}件'),
+              Expanded(
+                child: Container(
+                  height: 70,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '待機時間',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _waitingHours + '時間',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 70,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '稼働日数',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _workingDays + '日',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 70,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '教えて先生回答数',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _teacherResponses + '件',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
 
           // ミッションセクション
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+            alignment: Alignment.centerLeft,
             child: const Text(
               'ミッション',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-
-          // ミッションカード
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               children: [
-                _buildMissionCard(
-                  'ミッションクリア',
-                  _missionCleared,
-                  const Color(0xFFE1BEE7),
-                  Icons.emoji_events,
-                ),
-                const SizedBox(width: 12),
-                _buildMissionCard(
-                  'デイリー',
-                  false,
-                  const Color(0xFF80CBC4),
-                  Icons.flag,
-                  progressText: '残${_dailyMissionCompleted}/${_dailyMissionTotal}件',
-                ),
-                const SizedBox(width: 12),
-                _buildMissionCard(
-                  'ゲリラ',
-                  false,
-                  const Color(0xFFFFAB91),
-                  Icons.local_fire_department,
-                  progressText: '残${_guerrillaMissionCompleted}/${_guerrillaMissionTotal}件',
-                ),
-              ],
-            ),
-          ),
-
-          // 運営ブログセクション
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: const Text(
-              '運営ブログ',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-
-          // ブログ記事カード
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              children: _blogPosts.map((post) => _buildBlogPostCard(post)).toList(),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  // 統計情報アイテム（待機時間、稼働日数など）
-  Widget _buildStatItem(String title, String value) {
-    return Expanded(
-      child: Container(
-        height: 70,
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ミッションカード
-  Widget _buildMissionCard(String title, bool isCompleted, Color color, IconData icon, {String? progressText}) {
-    return Expanded(
-      child: AspectRatio(
-        aspectRatio: 1.0,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 3,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (isCompleted)
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(
-                      Icons.star_border,
-                      color: color,
-                      size: 60,
+                // ミッションクリアカード
+                Expanded(
+                  child: Container(
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const Text(
-                      'CLEAR',
-                      style: TextStyle(
-                        color: Colors.purple,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Icon(
-                  icon,
-                  color: color,
-                  size: 40,
-                ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (progressText != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    progressText,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ブログ記事カード
-  Widget _buildBlogPostCard(Map<String, dynamic> post) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: post['color'],
-      ),
-      child: InkWell(
-        onTap: () => _showNotImplementedMessage('ブログ記事の詳細表示'),
-        child: Row(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                    child: Stack(
                       children: [
-                        Icon(
-                          post['icon'] == 'maintenance' ? Icons.build : Icons.monetization_on,
-                          color: Colors.white,
-                          size: 20,
+                        Positioned.fill(
+                          child: Image.asset(
+                            'assets/images/mission_clear_bg.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [const Color(0xFFE7D9F9), const Color(0xFFF1EAFC)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          post['title'],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Image.asset(
+                                    'assets/images/crown.png',
+                                    width: 20,
+                                    height: 20,
+                                    errorBuilder: (context, error, stackTrace) => const Icon(
+                                      Icons.emoji_events,
+                                      color: Colors.amber,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'mission',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.deepPurple,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 5),
+                              Image.asset(
+                                'assets/images/mission_clear.png',
+                                height: 40,
+                                errorBuilder: (context, error, stackTrace) => const Text(
+                                  'CLEAR',
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFB388FF),
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      post['date'],
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
+                const SizedBox(width: 8),
+                // デイリーミッション
+                Expanded(
+                  child: Container(
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3BCFD4),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'デイリー',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Center(
+                          child: Text(
+                            '残2/2件',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        // 進捗バー
+                        Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: _dailyMissionCompleted,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF3BCFD4), Colors.green],
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: _dailyMissionTotal - _dailyMissionCompleted,
+                                child: Container(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // ゲリラミッション
+                Expanded(
+                  child: Container(
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.deepOrange,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'ゲリラ',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Center(
+                          child: Text(
+                            '残4/4件',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        // 進捗バー
+                        Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: _guerrillaMissionCompleted,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Colors.deepOrange, Colors.orange],
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: _guerrillaMissionTotal - _guerrillaMissionCompleted,
+                                child: Container(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ), 
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+            alignment: Alignment.centerLeft,
+            child: const Text(
+              '運営ブログ',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ],
-        ),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            child: ListView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              itemCount: _blogPosts.length,
+              itemBuilder: (context, index) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        // ブログ記事を開く
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // サムネイル
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.asset(
+                                'assets/images/blog_thumbnail_${index + 1}.jpg',
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: Colors.grey.shade200,
+                                  child: const Icon(
+                                    Icons.article,
+                                    color: Colors.grey,
+                                    size: 30,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // ブログ情報
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // カテゴリーラベル
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: index % 2 == 0 ? const Color(0xFF3BCFD4) : Colors.orange,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      index % 2 == 0 ? 'お知らせ' : 'キャンペーン',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // タイトル
+                                  Text(
+                                    _blogPosts[index]['title']!,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      height: 1.3,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // 投稿日
+                                  Text(
+                                    _blogPosts[index]['date']!,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            // 矢印
+                            const Icon(
+                              Icons.chevron_right,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
       ),
     );
   }

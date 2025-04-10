@@ -1,0 +1,374 @@
+import 'package:flutter/material.dart';
+import '../screens/fortune_teller/fortune_teller_home_screen.dart';
+import '../screens/fortune_teller/fortune_teller_mypage_screen.dart';
+
+class FortuneTellerBottomBar extends StatefulWidget {
+  final int currentIndex;
+  final Function(int) onTabTapped;
+  final bool isWaiting;
+  final Function(bool) onWaitingToggle;
+
+  const FortuneTellerBottomBar({
+    Key? key,
+    required this.currentIndex,
+    required this.onTabTapped,
+    required this.isWaiting,
+    required this.onWaitingToggle,
+  }) : super(key: key);
+
+  @override
+  State<FortuneTellerBottomBar> createState() => _FortuneTellerBottomBarState();
+}
+
+class _FortuneTellerBottomBarState extends State<FortuneTellerBottomBar> {
+  @override
+  Widget build(BuildContext context) {
+    // 画面幅を取得して中央配置を計算
+    final double screenWidth = MediaQuery.of(context).size.width;
+    
+    return Stack(
+      clipBehavior: Clip.none, // 外にはみ出す要素を表示
+      alignment: Alignment.bottomCenter,
+      children: [
+        // ボトムナビゲーションバー
+        Container(
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 5,
+                offset: const Offset(0, -1),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildTabItem(0, Icons.home, 'ホーム'),
+              _buildTabItem(1, Icons.send, 'チャット'),
+              // 中央のスペース
+              SizedBox(width: screenWidth / 5),
+              _buildTabItem(3, Icons.school, '教えて先生'),
+              _buildTabItem(4, Icons.person, 'マイページ'),
+            ],
+          ),
+        ),
+        
+        // フローティングアクションボタン（待機/オフライン切り替え）
+        Positioned(
+          bottom: 20,
+          child: GestureDetector(
+            onTap: () {
+              // 待機状態の切り替え
+              if (!widget.isWaiting) {
+                // 待機状態に切り替え
+                widget.onWaitingToggle(true);
+              }
+            },
+            child: Container(
+              width: 65,
+              height: 65,
+              decoration: BoxDecoration(
+                color: widget.isWaiting ? const Color(0xFF3bcfd4) : Colors.grey,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: GestureDetector(
+                onTap: () {
+                  if (widget.isWaiting) {
+                    // 待機中の場合、設定画面を表示
+                    _showWaitingSettingsModal(context);
+                  } else {
+                    // 待機する場合は元と同じ動作
+                    widget.onWaitingToggle(true);
+                  }
+                },
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.search,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                      Text(
+                        widget.isWaiting ? '待機中' : '待機する',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 待機設定モーダルを表示する関数
+  void _showWaitingSettingsModal(BuildContext context) {
+    // 日時入力用コントローラー
+    final TextEditingController _dateTimeController = TextEditingController();
+    // チャット待機と通話相談の状態
+    bool _isChatWaiting = true;
+    bool _isCallWaiting = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              height: 400,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '次回ログイン予定',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: TextField(
+                            controller: _dateTimeController,
+                            decoration: const InputDecoration(
+                              hintText: '日時を設定してください',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 15),
+                              hintStyle: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 1,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              '公開',
+                              style: TextStyle(color: Colors.grey[400]),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                  const SizedBox(height: 25),
+                  const Text(
+                    '待機設定',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('チャット待機',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Switch(
+                        value: _isChatWaiting,
+                        onChanged: (value) {
+                          setState(() {
+                            _isChatWaiting = value;
+                          });
+                        },
+                        activeColor: const Color(0xFF3bcfd4),
+                        trackColor: MaterialStateProperty.resolveWith((states) => 
+                          states.contains(MaterialState.selected) ? 
+                            const Color(0xFF3bcfd4).withOpacity(0.5) : Colors.grey[300]),
+                        thumbColor: MaterialStateProperty.all(Colors.white),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('通話相談',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Switch(
+                        value: _isCallWaiting,
+                        onChanged: (value) {
+                          setState(() {
+                            _isCallWaiting = value;
+                          });
+                        },
+                        activeColor: const Color(0xFF3bcfd4),
+                        trackColor: MaterialStateProperty.resolveWith((states) => 
+                          states.contains(MaterialState.selected) ? 
+                            const Color(0xFF3bcfd4).withOpacity(0.5) : Colors.grey[300]),
+                        thumbColor: MaterialStateProperty.all(Colors.white),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Container(
+                    width: double.infinity,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // 待機開始処理
+                        // 設定を適用してモーダルを閉じる
+                        Navigator.pop(context);
+                        
+                        // チャット待機か通話待機が有効なら待機状態を維持
+                        if (_isChatWaiting || _isCallWaiting) {
+                          // 待機状態を維持する場合は何もしない
+                        } else {
+                          // 両方とも無効なら待機状態を解除
+                          widget.onWaitingToggle(false);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3bcfd4),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      child: const Text('待機を開始する',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        // キャンセル処理
+                        Navigator.pop(context);
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey,
+                      ),
+                      child: const Text(
+                        'キャンセル',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // 下部の黒いバーを追加
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTabItem(int index, IconData icon, String label) {
+    final bool isSelected = widget.currentIndex == index;
+    
+    return GestureDetector(
+      onTap: () => widget.onTabTapped(index),
+      child: Container(
+        width: 60,
+        color: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFF3bcfd4) : Colors.grey,
+              size: 22,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFF3bcfd4) : Colors.grey,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

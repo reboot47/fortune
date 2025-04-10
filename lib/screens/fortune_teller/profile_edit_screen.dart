@@ -499,14 +499,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                       height: 110,
                                       decoration: const BoxDecoration(
                                         shape: BoxShape.circle,
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            Color(0xFF3bcfd4),
-                                            Color(0xFF1a237e),
-                                          ],
-                                        ),
+                                        color: Color(0xFF3bcfd4),
                                       ),
                                     ),
                                     // プロフィール画像
@@ -556,7 +549,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                   style: TextStyle(
                                     color: Color(0xFF3bcfd4),
                                     fontSize: 14,
-                                    decoration: TextDecoration.underline,
+                                    //decoration: TextDecoration.underline,
                                   ),
                                 ),
                               ],
@@ -581,6 +574,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                 controller: _nameController,
                                 decoration: const InputDecoration(
                                   hintText: '例: 霊感お姉さん',
+                                  hintStyle: TextStyle(color: Colors.grey),
                                   border: OutlineInputBorder(),
                                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),

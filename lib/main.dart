@@ -3,6 +3,8 @@ import 'dart:io' show Platform;
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/fortune_teller/fortune_teller_login_screen.dart';
 import 'screens/fortune_teller/fortune_teller_home_screen.dart';
@@ -13,6 +15,9 @@ import 'splash_screen.dart';
 void main() async {
   // Flutterフレームワークの初期化を最初に行う
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 日本語ロケールの初期化
+  await initializeDateFormatting('ja_JP', null);
   
   developer.log('アプリケーションを開始します');
   print('アプリケーションを開始します');
@@ -62,6 +67,16 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.getLightTheme(),
       darkTheme: AppTheme.getDarkTheme(),
       themeMode: ThemeMode.system, // システム設定に従う
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ja', 'JP'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('ja', 'JP'),
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),

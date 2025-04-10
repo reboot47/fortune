@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'fortune_teller_bottom_bar.dart';
+import 'fortune_teller_drawer.dart';
 import '../screens/fortune_teller/fortune_teller_home_screen.dart';
 import '../screens/fortune_teller/fortune_teller_mypage_screen.dart';
 
@@ -14,6 +15,8 @@ class FortuneTellerBaseScreen extends StatefulWidget {
   final Function(bool)? onWaitingStatusChanged;
   final bool centerTitle;
   final List<Widget>? actions;
+  final bool hideBottomBar;
+  final GlobalKey<ScaffoldState>? scaffoldKey; // スカフォールドキーを追加
 
   const FortuneTellerBaseScreen({
     Key? key,
@@ -25,6 +28,8 @@ class FortuneTellerBaseScreen extends StatefulWidget {
     this.onWaitingStatusChanged,
     this.centerTitle = true,
     this.actions,
+    this.hideBottomBar = false,
+    this.scaffoldKey, // スカフォールドキーパラメータを追加
   }) : super(key: key);
 
   @override
@@ -55,7 +60,12 @@ class _FortuneTellerBaseScreenState extends State<FortuneTellerBaseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 明示的にキーを設定
+    final scaffoldKey = widget.scaffoldKey ?? GlobalKey<ScaffoldState>();
+    
     return Scaffold(
+      key: scaffoldKey,
+      drawerEnableOpenDragGesture: true, // ドラッグでもドロワーを開けるように
       appBar: widget.customAppBar ?? AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
@@ -63,25 +73,43 @@ class _FortuneTellerBaseScreenState extends State<FortuneTellerBaseScreen> {
         titleSpacing: 0,
         title: Row(
           children: [
-            // 左側のチャットアイコン
-            Padding(
-              padding: const EdgeInsets.only(left: 10),
-              child: Icon(
-                Icons.chat_bubble_outline, 
-                color: Color(0xFF3bcfd4), 
-                size: 26,
+            // 左側のチャットアイコン - タップでドロワーを開く
+            GestureDetector(
+              onTap: () {
+                if (widget.scaffoldKey != null) {
+                  widget.scaffoldKey!.currentState?.openDrawer();
+                } else {
+                  Scaffold.of(context).openDrawer();
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(left: 10),
+                child: Icon(
+                  Icons.chat_bubble_outline, 
+                  color: Color(0xFF3bcfd4), 
+                  size: 26,
+                ),
               ),
             ),
             
-            // テキストも左寄せ
-            Padding(
-              padding: const EdgeInsets.only(left: 10),
-              child: Text(
-                _isWaiting ? 'チャット相談中' : 'オフライン',
-                style: const TextStyle(
-                  color: Color(0xFF3bcfd4),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+            // テキストも左寄せ - タップでもドロワーを開く
+            GestureDetector(
+              onTap: () {
+                if (widget.scaffoldKey != null) {
+                  widget.scaffoldKey!.currentState?.openDrawer();
+                } else {
+                  Scaffold.of(context).openDrawer();
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(left: 10),
+                child: Text(
+                  _isWaiting ? '待機中' : 'オフライン',
+                  style: const TextStyle(
+                    color: Color(0xFF3bcfd4),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -101,12 +129,21 @@ class _FortuneTellerBaseScreenState extends State<FortuneTellerBaseScreen> {
           ],
         ),
       ),
+      drawer: const FortuneTellerDrawer(),
       body: widget.body,
-      bottomNavigationBar: FortuneTellerBottomBar(
+      bottomNavigationBar: widget.hideBottomBar ? null : FortuneTellerBottomBar(
         currentIndex: _currentIndex,
         onTabTapped: _onItemTapped,
         isWaiting: _isWaiting,
         onWaitingToggle: _toggleWaitingStatus,
+        onChatTap: () {
+          // チャットボタンを押したときにドロワーを開く
+          if (widget.scaffoldKey != null) {
+            widget.scaffoldKey!.currentState?.openDrawer();
+          } else {
+            Scaffold.of(context).openDrawer();
+          }
+        },
       ),
       backgroundColor: const Color(0xFFF5F5F5),
       floatingActionButton: widget.floatingActionButton,
@@ -147,9 +184,11 @@ class _FortuneTellerBaseScreenState extends State<FortuneTellerBaseScreen> {
   }
 
   /// 待機状態の切り替え
-  void _toggleWaitingStatus() {
+  /// [newStatus] 新しい待機状態を指定する場合はその値を使用し、省略された場合は現在の状態を反転
+  void _toggleWaitingStatus([bool? newStatus]) {
     setState(() {
-      _isWaiting = !_isWaiting;
+      // 新しい状態が指定されていればそれを使用、そうでなければ現在の状態を反転
+      _isWaiting = newStatus ?? !_isWaiting;
     });
     
     // 親ウィジェットに状態変更を通知

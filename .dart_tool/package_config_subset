@@ -398,6 +398,10 @@ flutter
 3.7
 file:///opt/homebrew/Caskroom/flutter/3.29.2/flutter/packages/flutter/
 file:///opt/homebrew/Caskroom/flutter/3.29.2/flutter/packages/flutter/lib/
+flutter_localizations
+3.7
+file:///opt/homebrew/Caskroom/flutter/3.29.2/flutter/packages/flutter_localizations/
+file:///opt/homebrew/Caskroom/flutter/3.29.2/flutter/packages/flutter_localizations/lib/
 flutter_test
 3.7
 file:///opt/homebrew/Caskroom/flutter/3.29.2/flutter/packages/flutter_test/
