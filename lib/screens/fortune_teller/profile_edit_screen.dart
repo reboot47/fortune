@@ -28,6 +28,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   // サービスインスタンス
   final ImagePicker _picker = ImagePicker();
   
+  // プロフィール画像
+  File? _profileImage;
+  String? _networkImageUrl;
+
+  // ユーザーデータ
+  Map<String, dynamic>? _userData;
+  
   // 性別選択
   String _selectedGender = '女性';
   
@@ -261,7 +268,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   // プロフィール画像の選択
   Future<void> _pickImage() async {
     try {
-      final pickedFile = await _imagePicker.pickImage(
+      final pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80,
       );
@@ -407,98 +414,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
   
-  // プロフィール画像を選択
-  Future<void> _pickImage() async {
-    try {
-      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-      if (pickedFile != null) {
-        // アプリディレクトリに画像を保存
-        final appDir = await getApplicationDocumentsDirectory();
-        final fileName = path.basename(pickedFile.path);
-        final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
-        
-        // SharedPreferencesに画像パスを保存
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('profileImagePath', savedImage.path);
-        
-        setState(() {
-          _profileImage = savedImage;
-          _networkImageUrl = null; // ローカル画像を使用するためネットワーク画像をクリア
-        });
-      }
-    } catch (e) {
-      print('画像選択エラー: $e');
-      _showMessage('画像の選択に失敗しました: $e');
-    }
+  // プロフィール画像をユーザーデータから取得するヘルパーメソッド
+  ImageProvider? _getProfileImageFromUserData() {
+    if (_userData == null) return null;
+    if (_userData!['profile_image'] == null) return null;
+    if (_userData!['profile_image'].toString().isEmpty) return null;
+    
+    return NetworkImage(_userData!['profile_image'].toString());
   }
   
-  // プロフィールを保存
-  Future<void> _saveProfile() async {
-    // 入力チェック
-    if (_nameController.text.trim().isEmpty) {
-      _showMessage('名前を入力してください');
-      return;
-    }
+  // デフォルトのプロフィールアイコンを表示すべきか判断するヘルパーメソッド
+  bool _shouldShowDefaultProfileIcon() {
+    if (_profileImage != null) return false;
+    if (_userData == null) return true;
+    if (_userData!['profile_image'] == null) return true;
+    if (_userData!['profile_image'].toString().isEmpty) return true;
     
-    // 得意ジャンルの選択数をチェック
-    final selectedGenres = _genres.entries.where((e) => e.value).length;
-    if (selectedGenres < 3 || selectedGenres > 9) {
-      _showMessage('得意ジャンルは3〜9つ選択してください');
-      return;
-    }
-    
-    // 得意占術の選択数をチェック
-    final selectedTypes = _fortuneTellingTypes.entries.where((e) => e.value).length;
-    if (selectedTypes < 1 || selectedTypes > 6) {
-      _showMessage('得意占術は1〜6つ選択してください');
-      return;
-    }
-    
-    // 相談スタイルの選択数をチェック
-    final selectedStyles = _consultationStyles.entries.where((e) => e.value).length;
-    if (selectedStyles != 3) {
-      _showMessage('相談スタイルは3つ選択してください');
-      return;
-    }
-    
-    setState(() {
-      _isSaving = true;
-    });
-    
-    try {
-      // プロフィールデータを作成
-      final profileData = <String, dynamic>{
-        'name': _nameController.text.trim(),
-        'gender': _selectedGender,
-        'introduction': _introductionController.text,
-        'sample_voice_text': _sampleVoiceController.text,
-        'genres': _genres.entries.where((e) => e.value).map((e) => e.key).toList(),
-        'fortune_telling_types': _fortuneTellingTypes.entries.where((e) => e.value).map((e) => e.key).toList(),
-        'consultation_styles': _consultationStyles.entries.where((e) => e.value).map((e) => e.key).toList(),
-      };
-      
-      // プロフィール画像のパスを取得してデータに追加
-      final imagePath = await _fortuneTellerService.getProfileImagePath();
-      if (imagePath != null && imagePath.isNotEmpty) {
-        profileData['profile_image'] = imagePath;
-      }
-      
-      // プロフィールを保存
-      final result = await _fortuneTellerService.saveFortuneTellerProfile(profileData);
-      
-      if (result['success'] == true) {
-        _showMessage('プロフィールを保存しました');
-      } else {
-        _showMessage('保存に失敗しました: ${result['message']}');
-      }
-    } catch (e) {
-      print('プロフィール保存エラー: $e');
-      _showMessage('プロフィールの保存に失敗しました: $e');
-    } finally {
-      setState(() {
-        _isSaving = false;
-      });
-    }
+    return false;
   }
   
   @override
@@ -603,11 +535,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                       radius: 50,
                                       backgroundImage: _profileImage != null
                                           ? FileImage(_profileImage!)
-                                          : (_userData != null && _userData['profile_image'] != null && _userData['profile_image'].isNotEmpty)
-                                              ? NetworkImage(_userData['profile_image'])
-                                              : null,
+                                          : _getProfileImageFromUserData(),
                                       backgroundColor: Colors.grey[200],
-                                      child: _profileImage == null && (_userData == null || _userData['profile_image'] == null || _userData['profile_image'].isEmpty)
+                                      child: _shouldShowDefaultProfileIcon()
                                           ? const Icon(Icons.person, size: 50, color: Colors.grey)
                                           : null,
                                     ),

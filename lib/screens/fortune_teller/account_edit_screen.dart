@@ -20,6 +20,16 @@ class _AccountEditScreenState extends State<AccountEditScreen> {
   int _currentIndex = 4; // マイページタブ
   bool _isWaiting = true; // 初期状態は待機中
   
+  // 未実装機能のメッセージを表示
+  void _showNotImplementedMessage(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('「$feature」機能は現在開発中です'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+  
   // アカウント情報
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();

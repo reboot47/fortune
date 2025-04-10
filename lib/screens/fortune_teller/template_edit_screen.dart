@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/database_service.dart';
 import '../../widgets/fortune_teller_tab_bar.dart';
+import '../../widgets/fortune_teller_base_screen.dart';
 import '../../models/fortune_type.dart';
 
 class TemplateEditScreen extends StatefulWidget {
@@ -185,9 +186,15 @@ class _TemplateEditScreenState extends State<TemplateEditScreen> {
   
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
+    return FortuneTellerBaseScreen(
+      currentIndex: _currentIndex,
+      isWaiting: _isWaiting,
+      onWaitingStatusChanged: (value) {
+        setState(() {
+          _isWaiting = value;
+        });
+      },
+      customAppBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
         title: Text(

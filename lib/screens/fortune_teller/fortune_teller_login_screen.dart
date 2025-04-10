@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
 import 'dart:ui';
+import '../../widgets/fortune_teller_base_screen.dart';
 import '../../services/database_service.dart';
 // import '../../theme/app_theme.dart'; // 未使用のため削除
 import 'fortune_teller_home_screen.dart';
@@ -79,7 +80,7 @@ class _FortuneTellerLoginScreenState extends State<FortuneTellerLoginScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,

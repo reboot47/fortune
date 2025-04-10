@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../widgets/custom_bottom_navigation.dart';
+import '../../widgets/fortune_teller_base_screen.dart';
 import '../../services/database_service.dart';
-import 'fortune_teller_home_screen.dart';
 import 'profile_edit_screen.dart';
 
 class FortuneTellerMyPageScreen extends StatefulWidget {
@@ -132,9 +131,16 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
+    return FortuneTellerBaseScreen(
+      currentIndex: _currentIndex,
+      isWaiting: false,  // マイページではデフォルトでオフライン表示
+      onWaitingStatusChanged: (value) {
+        // 必要に応じて待機状態を処理
+        setState(() {
+          // 状態変更の通知
+        });
+      },
+      customAppBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
         title: Row(
@@ -362,11 +368,6 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: CustomBottomNavigation(
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
-        isFortunetellerMode: true,
       ),
     );
   }
@@ -768,32 +769,6 @@ class _FortuneTellerMyPageScreenState extends State<FortuneTellerMyPageScreen> {
     );
   }
 
-  void _onItemTapped(int index) {
-    if (index == _currentIndex) return;
-    
-    setState(() {
-      _currentIndex = index;
-    });
-    
-    // 他のタブに切り替える処理
-    switch (index) {
-      case 0:
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const FortuneTellerHomeScreen()),
-        );
-        break;
-      case 1:
-        // チャット画面に遷移
-        break;
-      case 2:
-        // 待機する画面に遷移
-        break;
-      case 3:
-        // 教えて先生画面に遷移
-        break;
-      case 4:
-        // 現在のマイページ
-        break;
-    }
-  }
+  // FortuneTellerBaseScreenが内部でタブ切り替えを処理するため
+  // _onItemTappedメソッドは不要
 }
