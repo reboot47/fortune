@@ -203,10 +203,11 @@ class _FortuneTellerChatScreenState extends State<FortuneTellerChatScreen> {
             IconButton(
               icon: const Icon(
                 Icons.home_outlined,
-                color: Color(0xFF3bcfd4), // グレー色
+                color: Color(0xFF3bcfd4), // ターコイズ色
               ),
               onPressed: () {
-                Navigator.of(context).pop(); // ホーム画面に戻る
+                // 確実にホーム画面に戻るだけにする
+                Navigator.of(context).pushReplacementNamed('/fortune_teller_home'); // 正しいルートでホーム画面に移動
               },
             ),
             // チャットアイコン（ドロワーを開く）

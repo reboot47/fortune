@@ -109,26 +109,39 @@ class _FortuneTellerDrawerState extends State<FortuneTellerDrawer> {
           const SizedBox(width: 15),
           // ユーザー情報
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  '霊感お姉さん',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+            child: InkWell(
+              onTap: () {
+                // チャットページに遷移
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const FortuneTellerChatScreen(
+                      userName: '霊感お姉さん',
+                    ),
                   ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '報酬：1,005,445.49PT',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    '霊感お姉さん',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                  SizedBox(height: 4),
+                  Text(
+                    '報酬：1,005,445.49PT',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           // 通知アイコン
@@ -613,39 +626,50 @@ class _FortuneTellerDrawerState extends State<FortuneTellerDrawer> {
       itemCount: histories.length,
       itemBuilder: (context, index) {
         final history = histories[index];
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    history['name'] as String,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+        return InkWell(
+          onTap: () {
+            // チャットページに遷移
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => FortuneTellerChatScreen(
+                  userName: history['name'] as String,
+                ),
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      history['name'] as String,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        history['time'] as String,
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 13,
+                    Row(
+                      children: [
+                        Text(
+                          history['time'] as String,
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Icon(
-                        Icons.star_border,
-                        color: Colors.white60,
-                        size: 20,
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 10),
+                        const Icon(
+                          Icons.star_border,
+                          color: Colors.white60,
+                          size: 20,
+                        ),
+                      ],
+                    ),
                 ],
               ),
               const SizedBox(height: 5),
@@ -660,6 +684,7 @@ class _FortuneTellerDrawerState extends State<FortuneTellerDrawer> {
               ),
             ],
           ),
+        ),
         );
       },
     );
