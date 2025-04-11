@@ -4,6 +4,16 @@ import 'fortune_teller_drawer.dart';
 import '../screens/fortune_teller/fortune_teller_home_screen.dart';
 import '../screens/fortune_teller/fortune_teller_mypage_screen.dart';
 
+// アプリ全体で共有するスカフォールドキー
+final GlobalKey<ScaffoldState> baseAppKey = GlobalKey<ScaffoldState>();
+
+// ドロワーを確実に開くユーティリティ関数
+void openBaseDrawer() {
+  if (baseAppKey.currentState != null && !baseAppKey.currentState!.isDrawerOpen) {
+    baseAppKey.currentState!.openDrawer();
+  }
+}
+
 /// 占い師用の共通ベース画面
 /// フッターメニューと待機/オフライン状態の切り替え機能を提供
 class FortuneTellerBaseScreen extends StatefulWidget {
@@ -60,8 +70,8 @@ class _FortuneTellerBaseScreenState extends State<FortuneTellerBaseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 明示的にキーを設定
-    final scaffoldKey = widget.scaffoldKey ?? GlobalKey<ScaffoldState>();
+    // 確実に開けるグローバルキーを使用
+    final scaffoldKey = widget.scaffoldKey ?? baseAppKey;
     
     return Scaffold(
       key: scaffoldKey,
@@ -76,33 +86,27 @@ class _FortuneTellerBaseScreenState extends State<FortuneTellerBaseScreen> {
             // 左側のチャットアイコン - タップでドロワーを開く
             GestureDetector(
               onTap: () {
-                if (widget.scaffoldKey != null) {
-                  widget.scaffoldKey!.currentState?.openDrawer();
-                } else {
-                  Scaffold.of(context).openDrawer();
-                }
+                // ドロワーを開く
+                openBaseDrawer();
               },
-              child: Padding(
-                padding: const EdgeInsets.only(left: 10),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 10),
                 child: Icon(
-                  Icons.chat_bubble_outline, 
-                  color: Color(0xFF3bcfd4), 
-                  size: 26,
+                  Icons.chat_bubble_outline,
+                  color: Color(0xFF3bcfd4),
+                  size: 22,
                 ),
               ),
             ),
             
-            // テキストも左寄せ - タップでもドロワーを開く
+            // 待機中/オフラインテキスト - タップでドロワーを開く
             GestureDetector(
               onTap: () {
-                if (widget.scaffoldKey != null) {
-                  widget.scaffoldKey!.currentState?.openDrawer();
-                } else {
-                  Scaffold.of(context).openDrawer();
-                }
+                // ドロワーを開く
+                openBaseDrawer();
               },
               child: Padding(
-                padding: const EdgeInsets.only(left: 10),
+                padding: const EdgeInsets.only(left: 8),
                 child: Text(
                   _isWaiting ? '待機中' : 'オフライン',
                   style: const TextStyle(

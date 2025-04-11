@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../screens/fortune_teller/fortune_teller_home_screen.dart';
 import '../screens/fortune_teller/fortune_teller_mypage_screen.dart';
 import '../screens/chat/fortune_teller_chat_screen.dart'; // chatScreenScaffoldKeyをインポート
+import 'fortune_teller_drawer.dart'; // ドロワーウィジェットをインポート
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,8 +57,16 @@ class _FortuneTellerBottomBarState extends State<FortuneTellerBottomBar> {
               Builder(
                 builder: (context) => GestureDetector(
                   onTap: () {
-                    // 直接ドロワーを開く
-                    Scaffold.of(context).openDrawer();
+                    // その場でドロワーを開く
+                    final ScaffoldState? scaffold = Scaffold.maybeOf(context);
+                    if (scaffold != null) {
+                      scaffold.openDrawer();
+                    } else {
+                      // ドロワーが見つからない場合ユーザーに通知
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('ドロワーを開くことができませんでした'))
+                      );
+                    }
                   },
                   child: Container(
                     width: 70,

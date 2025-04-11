@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../screens/chat/fortune_teller_chat_screen.dart';
 
-// グローバルキーを定義
+// ドロワーを開くためのグローバルキーと関数
 final GlobalKey<ScaffoldState> globalScaffoldKey = GlobalKey<ScaffoldState>();
 
-// どこからでもドロワーを開くための関数
+// どこからでもドロワーを確実に開く関数
 void openDrawer() {
   if (globalScaffoldKey.currentState != null && !globalScaffoldKey.currentState!.isDrawerOpen) {
     globalScaffoldKey.currentState!.openDrawer();

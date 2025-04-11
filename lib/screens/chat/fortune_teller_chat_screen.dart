@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../widgets/fortune_teller_base_screen.dart';
+import 'dart:io';
+import 'package:intl/intl.dart';
 import '../../models/chat_message.dart';
+import '../../widgets/fortune_teller_drawer.dart';
 import '../../widgets/chat/chat_bubble.dart';
 import '../../widgets/chat/chat_template.dart';
-import '../../widgets/fortune_teller_drawer.dart';
-import 'package:intl/intl.dart';
 
 // グローバルキー - アプリ全体で使用可能
 final chatScreenScaffoldKey = GlobalKey<ScaffoldState>();
@@ -185,200 +185,7 @@ class _FortuneTellerChatScreenState extends State<FortuneTellerChatScreen> {
     );
   }
   
-  // カスタムドロワーをビルドするメソッド
-  Widget _buildCustomDrawer() {
-    return Drawer(
-      child: Column(
-        children: [
-          // ヘッダー部分
-          Container(
-            padding: const EdgeInsets.only(top: 40, left: 16, right: 16, bottom: 16),
-            color: const Color(0xFF3bcfd4), // ターコイズ色
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ユーザー情報
-                Row(
-                  children: [
-                    // プロフィール画像
-                    const CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.person,
-                        color: Color(0xFF3bcfd4),
-                        size: 40,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // 名前とポイント
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          '霊感お姉さん',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          '報酬：1,005,445.49PT',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          '現在のステージ stage5',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          // 対応中セクション
-          Container(
-            padding: const EdgeInsets.all(16),
-            width: double.infinity,
-            color: Colors.grey[200],
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  '対応中のお客様',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '対応中のお客様はいません。お客様を待ちましょう。',
-                  style: TextStyle(fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          
-          // リクエストセクションヘッダー
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'リクエスト受付',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                // ソートボタン
-                Row(
-                  children: const [
-                    Icon(Icons.sort, size: 16, color: Colors.grey),
-                    SizedBox(width: 4),
-                    Text('受付日が新しい順', style: TextStyle(fontSize: 12)),
-                    Icon(Icons.arrow_drop_down, size: 16, color: Colors.grey),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          // リクエストリスト
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: 4, // ダミーデータ
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) => _buildRequestItem(index),
-            ),
-          ),
-          
-          // バージョン情報
-          Container(
-            padding: const EdgeInsets.all(16),
-            alignment: Alignment.center,
-            child: const Text(
-              'Version 8.7',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
-            ),
-          ),
-          
-          // 下部インジケーター
-          Container(
-            height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            width: 40,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  // リクエストアイテムをビルドするメソッド
-  Widget _buildRequestItem(int index) {
-    // ダミーデータ
-    final List<Map<String, dynamic>> users = [
-      {
-        'name': '藤田麻衛子',
-        'time': '11時間前',
-        'hasCall': true,
-      },
-      {
-        'name': '浜田藍花',
-        'time': '1日前',
-        'hasCall': false,
-      },
-      {
-        'name': '鈴木ゆき',
-        'time': '2日前',
-        'hasCall': true,
-      },
-      {
-        'name': '小川花子',
-        'time': '3日前',
-        'hasCall': false,
-      },
-    ];
-    
-    final user = users[index];
-    
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        user['name'] ?? '',
-        style: const TextStyle(fontWeight: FontWeight.w500),
-      ),
-      subtitle: Text(user['time'] ?? ''),
-      trailing: user['hasCall'] == 'true' || user['hasCall'] == true
-          ? const Icon(Icons.phone, color: Colors.green, size: 20) 
-          : null,
-      onTap: () {
-        // チャット画面を開く
-        Navigator.pop(context); // ドロワーを閉じる
-      },
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -392,28 +199,73 @@ class _FortuneTellerChatScreenState extends State<FortuneTellerChatScreen> {
         titleSpacing: 0,
         title: Row(
           children: [
+            // ホームアイコン（ホーム画面に戻る）を一番左に配置
+            IconButton(
+              icon: const Icon(
+                Icons.home_outlined,
+                color: Color(0xFF3bcfd4), // グレー色
+              ),
+              onPressed: () {
+                Navigator.of(context).pop(); // ホーム画面に戻る
+              },
+            ),
             // チャットアイコン（ドロワーを開く）
             Builder(
               builder: (context) => IconButton(
                 icon: const Icon(
                   Icons.chat_outlined,
-                  color: Color(0xFF757575), // グレー色
+                  color: Color(0xFF3bcfd4), // グレー色
                 ),
                 onPressed: () {
-                  // 直接開く
-                  Scaffold.of(context).openDrawer();
+                  // ドロワーを確実に開く
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('ドロワーを開こうとしています...'))
+                  );
+                  
+                  // 複数の方法で試す
+                  try {
+                    chatScreenScaffoldKey.currentState?.openDrawer();
+                  } catch (e) {
+                    try {
+                      Scaffold.of(context).openDrawer();
+                    } catch (e) {
+                      // ドロワーを開く画面を表示
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Scaffold(
+                            appBar: AppBar(
+                              title: const Text('メニュー'),
+                              backgroundColor: const Color(0xFF3bcfd4),
+                            ),
+                            drawer: const FortuneTellerDrawer(),
+                            body: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text('ドロワーを表示するには左からスワイプしてください',
+                                    style: TextStyle(fontSize: 16),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Scaffold.of(context).openDrawer();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF3bcfd4),
+                                    ),
+                                    child: const Text('ドロワーを開く'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
-            ),
-            // ホームアイコン（ホーム画面に戻る）
-            IconButton(
-              icon: const Icon(
-                Icons.home_outlined,
-                color: Color(0xFF757575), // グレー色
-              ),
-              onPressed: () {
-                Navigator.of(context).pop(); // ホーム画面に戻る
-              },
             ),
             // ユーザー名（中央に配置）
             Expanded(
@@ -453,10 +305,12 @@ class _FortuneTellerChatScreenState extends State<FortuneTellerChatScreen> {
       ),
     );
     
-    // Scaffoldを直接使用する形に変更
+    // チャット画面スカフォールドにキーを設定
     return Scaffold(
       key: chatScreenScaffoldKey,
-      drawer: _buildCustomDrawer(),
+      drawer: const FortuneTellerDrawer(),
+      endDrawerEnableOpenDragGesture: true, // スワイプで開けるようにする
+      drawerEnableOpenDragGesture: true,   // スワイプで開けるようにする
       appBar: customAppBar,
       body: Column(
         children: [
